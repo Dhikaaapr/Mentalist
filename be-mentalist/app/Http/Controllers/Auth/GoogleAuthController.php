@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Exception;
 use App\Services\SupabaseService;
@@ -28,77 +30,123 @@ class GoogleAuthController extends Controller
      */
     public function handleGoogleLogin(Request $request): JsonResponse
     {
-        try {
-            $request->validate([
-                'id_token' => 'required|string',
-            ]);
+        $request->validate([
+            'id_token' => 'required|string',
+        ]);
 
-            // Verify the ID token with Google
-            $idToken = $request->id_token;
-            
-            // Verify the token using Google's API
-            $googleApiUrl = "https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=" . $idToken;
-            $response = json_decode(file_get_contents($googleApiUrl), true);
-            
-            // Check if token is valid
-            if (isset($response['error']) || !isset($response['email'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid Google ID token'
-                ], 400);
-            }
+        $tokenInfo = Http::get('https://oauth2.googleapis.com/tokeninfo', [
+            'id_token' => $request->id_token,
+        ]);
 
-            // Extract user info from the token
-            $email = $response['email'];
-            $name = $response['name'] ?? $response['email'];
-            $googleId = $response['sub'];
-            $picture = $response['picture'] ?? null;
-
-            // Check if user already exists in local database
-            $user = User::where('email', $email)->first();
-            
-            if ($user) {
-                // User already exists, update their info if needed
-                $user->update([
-                    'name' => $name,
-                ]);
-                
-                // In a real implementation, you might also update the Supabase user
-                // $this->supabaseService->updateUser($user->id, ['name' => $name]);
-            } else {
-                // Create new user in local database
-                $user = User::create([
-                    'name' => $name,
-                    'email' => $email,
-                    'password' => Hash::make(Str::random(16)), // Generate random password for Google users
-                ]);
-                
-                // In a real implementation, you might also create the user in Supabase
-                // $this->supabaseService->createUser([
-                //     'id' => $user->id,
-                //     'email' => $email,
-                //     'name' => $name
-                // ]);
-            }
-            
-            // Generate token for API authentication
-            $token = $user->createToken('GoogleAuthToken')->plainTextToken;
-            
-            return response()->json([
-                'success' => true,
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                ],
-                'token' => $token,
-                'token_type' => 'Bearer'
-            ]);
-        } catch (Exception $e) {
+        if (!$tokenInfo->successful()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to process Google authentication: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Invalid Google ID token.',
+            ], 400);
         }
+
+        $payload = $tokenInfo->json();
+
+        $allowedAudiences = collect(config('services.google.allowed_audiences', []))
+            ->filter()
+            ->all();
+        $audience = $payload['aud']
+            ?? $payload['audience']
+            ?? $payload['azp']
+            ?? null;
+
+        if (!empty($allowedAudiences)
+            && $audience
+            && !in_array('*', $allowedAudiences, true)
+            && !in_array($audience, $allowedAudiences, true)
+        ) {
+            Log::warning('Google login rejected due to audience mismatch', [
+                'audience' => $audience,
+                'allowed' => $allowedAudiences,
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Google token audience is not allowed.',
+            ], 400);
+        }
+
+        if (!isset($payload['email'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Google account does not provide an email address.',
+            ], 400);
+        }
+
+        $email = $payload['email'];
+        $name = $payload['name'] ?? $email;
+        $googleId = $payload['sub'] ?? null;
+        $picture = $payload['picture'] ?? null;
+
+        $defaultRole = Role::firstOrCreate(
+            ['name' => 'user'],
+            ['display_name' => 'User']
+        );
+
+        $user = User::query()
+            ->where('google_id', $googleId)
+            ->orWhere('email', $email)
+            ->first();
+
+        if ($user) {
+            $user->fill([
+                'name' => $name,
+                'picture' => $picture,
+            ]);
+
+            if (!$user->google_id) {
+                $user->google_id = $googleId;
+            }
+
+            if (!$user->role_id) {
+                $user->role_id = $defaultRole->id;
+            }
+
+            if ($user->isDirty()) {
+                $user->save();
+            }
+        } else {
+            $user = User::create([
+                'name' => $name,
+                'email' => $email,
+                'google_id' => $googleId,
+                'picture' => $picture,
+                'role_id' => $defaultRole->id,
+                'password' => Hash::make(Str::random(32)),
+            ]);
+
+            try {
+                $this->supabaseService->createUser([
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'name' => $user->name,
+                ]);
+            } catch (Exception $e) {
+                // Supabase sync is best-effort; ignore failures for local auth.
+            }
+        }
+
+        $token = $user->createToken('google-auth')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'picture' => $user->picture,
+                'role' => [
+                    'id' => $user->role?->id,
+                    'name' => $user->role?->name,
+                    'display_name' => $user->role?->display_name,
+                ],
+            ],
+            'token' => $token,
+            'token_type' => 'Bearer',
+        ]);
     }
 }

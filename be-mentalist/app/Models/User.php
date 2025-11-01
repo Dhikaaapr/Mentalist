@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -16,6 +17,12 @@ class User extends Authenticatable
     use HasFactory, Notifiable, HasApiTokens, SoftDeletes;
 
     /**
+     * The primary key is stored as a UUID string.
+     */
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var list<string>
@@ -23,6 +30,9 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'picture',
+        'role_id',
+        'google_id',
         'password',
     ];
 
@@ -70,5 +80,13 @@ class User extends Authenticatable
     public function getRouteKeyName()
     {
         return 'id';
+    }
+
+    /**
+     * Role relationship.
+     */
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class);
     }
 }
