@@ -1,8 +1,20 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'login_page.dart';
 
 class UserDashboardPage extends StatefulWidget {
-  const UserDashboardPage({super.key});
+  final String userName;
+  final String userEmail;
+  final String? userPhotoUrl;
+
+  const UserDashboardPage({
+    super.key,
+    required this.userName,
+    required this.userEmail,
+    this.userPhotoUrl,
+  });
 
   @override
   State<UserDashboardPage> createState() => _UserDashboardPageState();
@@ -10,6 +22,7 @@ class UserDashboardPage extends StatefulWidget {
 
 class _UserDashboardPageState extends State<UserDashboardPage> {
   int _selectedIndex = 0;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   final List<Map<String, dynamic>> counselors = [
     {
@@ -37,6 +50,17 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
 
   String? selectedCounselor;
 
+  Future<void> _logout() async {
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,13 +75,8 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false,
-              );
-            },
+            tooltip: "Logout",
+            onPressed: _logout,
           ),
         ],
       ),
@@ -88,6 +107,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     );
   }
 
+  // ======== VIEW: Dashboard Utama ========
   Widget _buildDashboardView() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -120,21 +140,37 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Halo, Andhika 👋",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 4),
-              Text(
-                "Bagaimana perasaanmu hari ini?",
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
+          CircleAvatar(
+            radius: 30,
+            backgroundImage: widget.userPhotoUrl != null
+                ? NetworkImage(widget.userPhotoUrl!)
+                : null,
+            backgroundColor: Colors.pinkAccent.withValues(alpha: 0.2),
+            child: widget.userPhotoUrl == null
+                ? const Icon(Icons.person, color: Colors.pinkAccent, size: 30)
+                : null,
+          ),
+
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Halo, ${widget.userName.split(' ')[0]} 👋",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "Bagaimana perasaanmu hari ini?",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -217,6 +253,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     );
   }
 
+  // ======== VIEW: Konselor ========
   Widget _buildCounselorView() {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -249,6 +286,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     );
   }
 
+  // ======== VIEW: Sesi ========
   Widget _buildSessionView() {
     return Center(
       child: Column(
@@ -277,6 +315,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     );
   }
 
+  // ======== VIEW: Profil User ========
   Widget _buildProfileView() {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -289,26 +328,37 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                children: const [
+                children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: Color.fromARGB(255, 239, 115, 227),
-                    child: Text("A"),
+                    backgroundColor: const Color.fromARGB(255, 239, 115, 227),
+                    backgroundImage: widget.userPhotoUrl != null
+                        ? NetworkImage(widget.userPhotoUrl!)
+                        : null,
+                    child: widget.userPhotoUrl == null
+                        ? Text(
+                            widget.userName[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          )
+                        : null,
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Andhika Presha",
-                        style: TextStyle(
+                        widget.userName,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        "andhika@example.com",
-                        style: TextStyle(color: Colors.grey),
+                        widget.userEmail,
+                        style: const TextStyle(color: Colors.grey),
                       ),
                     ],
                   ),

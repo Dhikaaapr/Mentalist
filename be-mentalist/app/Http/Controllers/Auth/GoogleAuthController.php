@@ -17,7 +17,7 @@ use App\Services\SupabaseService;
 class GoogleAuthController extends Controller
 {
     private SupabaseService $supabaseService;
-    
+
     public function __construct(SupabaseService $supabaseService)
     {
         $this->supabaseService = $supabaseService;
@@ -38,6 +38,8 @@ class GoogleAuthController extends Controller
             'id_token' => $request->id_token,
         ]);
 
+        // dd("fuck", $tokenInfo);
+
         if (!$tokenInfo->successful()) {
             return response()->json([
                 'success' => false,
@@ -55,7 +57,8 @@ class GoogleAuthController extends Controller
             ?? $payload['azp']
             ?? null;
 
-        if (!empty($allowedAudiences)
+        if (
+            !empty($allowedAudiences)
             && $audience
             && !in_array('*', $allowedAudiences, true)
             && !in_array($audience, $allowedAudiences, true)

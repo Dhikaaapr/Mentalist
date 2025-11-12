@@ -19,11 +19,11 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _phoneController = TextEditingController(
     text: "+62 812 3456 7890",
   );
-  final TextEditingController _specializationController = TextEditingController(
-    text: "Konseling Remaja & Keluarga",
+  final TextEditingController _birthController = TextEditingController(
+    text: "11 November 2002",
   );
-  final TextEditingController _experienceController = TextEditingController(
-    text: "5 Tahun Pengalaman Konseling",
+  final TextEditingController _addressController = TextEditingController(
+    text: "Jakarta Selatan",
   );
 
   @override
@@ -37,26 +37,28 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 8),
             CircleAvatar(
               radius: 55,
-              backgroundColor: Colors.deepPurple.shade100,
+              backgroundColor: Colors.pink.shade100,
               child: const Icon(
                 Icons.person,
                 size: 60,
-                color: Colors.deepPurple,
+                color: Colors.pinkAccent,
               ),
             ),
             const SizedBox(height: 16),
 
+            // Nama User
             Text(
               _nameController.text,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             const Text(
-              "Konselor Psikologi",
+              "User Aplikasi MindCare",
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 20),
 
+            // Card Informasi
             Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -79,15 +81,15 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     const Divider(),
                     _buildField(
-                      icon: Icons.school,
-                      label: "Spesialisasi",
-                      controller: _specializationController,
+                      icon: Icons.cake,
+                      label: "Tanggal Lahir",
+                      controller: _birthController,
                     ),
                     const Divider(),
                     _buildField(
-                      icon: Icons.star,
-                      label: "Pengalaman",
-                      controller: _experienceController,
+                      icon: Icons.home,
+                      label: "Alamat / Kota",
+                      controller: _addressController,
                     ),
                   ],
                 ),
@@ -96,6 +98,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
             const SizedBox(height: 24),
 
+            // Tombol Edit / Simpan
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -114,7 +117,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 icon: Icon(_isEditing ? Icons.save : Icons.edit),
                 label: Text(_isEditing ? "Simpan Perubahan" : "Edit Profil"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
+                  backgroundColor: Colors.pinkAccent,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -128,13 +131,14 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  // Widget untuk field data user
   Widget _buildField({
     required IconData icon,
     required String label,
     required TextEditingController controller,
   }) {
     return ListTile(
-      leading: Icon(icon, color: Colors.deepPurple),
+      leading: Icon(icon, color: Colors.pinkAccent),
       title: Text(label),
       subtitle: _isEditing
           ? TextField(
