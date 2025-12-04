@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/admin_login_page.dart'; // 👈 arahkan ke login admin
+import 'auth/admin_login_page.dart'; // 👈 arahkan ke login admin
 
 void main() {
   runApp(const AdminApp());

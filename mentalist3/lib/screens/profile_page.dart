@@ -11,195 +11,164 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
   bool _isEditing = false;
 
   final TextEditingController _nameController = TextEditingController(
-    text: "Andhika Presha Saputra",
+    text: "Sarah Lee",
   );
   final TextEditingController _emailController = TextEditingController(
-    text: "admin@mentalist.com",
+    text: "sarahlee@gmail.com",
   );
   final TextEditingController _phoneController = TextEditingController(
-    text: "+62 812 3456 7890",
+    text: "089088844333",
   );
-  final TextEditingController _roleController = TextEditingController(
-    text: "Administrator Sistem",
+  final TextEditingController _dateController = TextEditingController(
+    text: "15 November, 2023",
   );
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xfff4f6f9),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: const Icon(Icons.arrow_back, color: Colors.black),
+        ),
+        title: const Text(
+          "Settings",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+        centerTitle: true,
+      ),
+
+      /// BODY
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
         child: Column(
           children: [
-            const SizedBox(height: 16),
-            CircleAvatar(
-              radius: 55,
-              backgroundColor: Colors.blueAccent.shade100,
-              child: const Icon(
-                Icons.admin_panel_settings,
-                size: 60,
-                color: Colors.blueAccent,
-              ),
+            /// --- PROFILE HEADER ---
+            const CircleAvatar(
+              radius: 50,
+              backgroundColor: Color(0xFFD8CFF0),
+              child: Icon(Icons.person, size: 55, color: Color(0xFF6A1B9A)),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 15),
 
-            // Nama Admin
             Text(
               _nameController.text,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 6),
-            const Text("Administrator", style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 20),
+            const Text("Admin", style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 25),
 
-            // Kartu Data Profil
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            /// --- PERSONAL INFORMATION CARD ---
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(18),
               ),
-              elevation: 3,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    _buildField(
-                      icon: Icons.person,
-                      label: "Nama Lengkap",
-                      controller: _nameController,
-                    ),
-                    const Divider(),
-                    _buildField(
-                      icon: Icons.email,
-                      label: "Email",
-                      controller: _emailController,
-                    ),
-                    const Divider(),
-                    _buildField(
-                      icon: Icons.phone,
-                      label: "Nomor Telepon",
-                      controller: _phoneController,
-                    ),
-                    const Divider(),
-                    _buildField(
-                      icon: Icons.work,
-                      label: "Jabatan",
-                      controller: _roleController,
-                    ),
-                  ],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Personal information",
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  const SizedBox(height: 15),
+
+                  _infoItem(
+                    Icons.person,
+                    _nameController,
+                    editable: _isEditing,
+                  ),
+                  const SizedBox(height: 12),
+                  _infoItem(
+                    Icons.email,
+                    _emailController,
+                    editable: _isEditing,
+                  ),
+                  const SizedBox(height: 12),
+                  _infoItem(
+                    Icons.phone,
+                    _phoneController,
+                    editable: _isEditing,
+                  ),
+                  const SizedBox(height: 12),
+                  _infoItem(
+                    Icons.access_time,
+                    _dateController,
+                    editable: _isEditing,
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            // Tombol Edit / Simpan Profil
+            /// --- EDIT BUTTON ---
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
+              child: ElevatedButton(
                 onPressed: () {
                   setState(() {
                     if (_isEditing) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text("Profil admin berhasil disimpan ✅"),
+                          content: Text("Profile updated successfully"),
                         ),
                       );
                     }
                     _isEditing = !_isEditing;
                   });
                 },
-                icon: Icon(_isEditing ? Icons.save : Icons.edit),
-                label: Text(_isEditing ? "Simpan Perubahan" : "Edit Profil"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: Colors.grey.shade300,
+                  foregroundColor: Colors.black,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: Text(
+                  _isEditing ? "Save changes" : "Edit profile",
+                  style: const TextStyle(fontSize: 15),
                 ),
               ),
             ),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 25),
 
-            // =======================
-            // Bagian Pengaturan Sistem
-            // =======================
+            /// --- SYSTEM SETTINGS TITLE ---
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                "Pengaturan Sistem",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black54,
-                ),
+                "System settings",
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            /// --- SETTINGS MENU CARD ---
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(18),
               ),
-              elevation: 2,
               child: Column(
                 children: [
-                  _buildSettingTile(
-                    icon: Icons.color_lens,
-                    title: "Ubah Tema",
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Fitur ubah tema belum tersedia."),
-                        ),
-                      );
-                    },
+                  _settingsItem(
+                    Icons.group,
+                    "Manage users & counselors accounts",
+                    () {},
                   ),
-                  const Divider(),
-                  _buildSettingTile(
-                    icon: Icons.group,
-                    title: "Kelola Akun User & Konselor",
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Menu manajemen akun sedang dikembangkan.",
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(),
-                  _buildSettingTile(
-                    icon: Icons.info_outline,
-                    title: "Tentang Aplikasi",
-                    onTap: () {
-                      showAboutDialog(
-                        context: context,
-                        applicationName: "Mentalist Admin Panel",
-                        applicationVersion: "1.0.0",
-                        applicationIcon: const Icon(Icons.admin_panel_settings),
-                        children: const [
-                          Text(
-                            "Aplikasi pengelolaan konseling dan akun pengguna.",
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  const Divider(),
-                  _buildSettingTile(
-                    icon: Icons.logout,
-                    title: "Logout",
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Berhasil logout ✅")),
-                      );
-                      Navigator.pop(context); // kembali ke login
-                    },
-                    color: Colors.redAccent,
-                  ),
+                  _divider(),
+                  _settingsItem(Icons.info_outline, "About application", () {}),
+                  _divider(),
+                  _settingsItem(Icons.logout, "Logout", () {
+                    Navigator.pop(context);
+                  }, color: Colors.redAccent),
                 ],
               ),
             ),
@@ -209,37 +178,42 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
     );
   }
 
-  // Widget untuk field profil yang bisa diedit
-  Widget _buildField({
-    required IconData icon,
-    required String label,
-    required TextEditingController controller,
+  /// --- PROFILE VALUE ITEM ---
+  Widget _infoItem(
+    IconData icon,
+    TextEditingController controller, {
+    bool editable = false,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blueAccent),
-      title: Text(label),
-      subtitle: _isEditing
-          ? TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                isDense: true,
-                border: UnderlineInputBorder(),
-              ),
-            )
-          : Text(controller.text),
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF6A1B9A)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: editable
+              ? TextField(
+                  controller: controller,
+                  decoration: const InputDecoration(
+                    border: UnderlineInputBorder(),
+                    isDense: true,
+                  ),
+                )
+              : Text(controller.text, style: const TextStyle(fontSize: 15)),
+        ),
+      ],
     );
   }
 
-  // Widget untuk item pengaturan
-  Widget _buildSettingTile({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    Color color = Colors.black87,
+  /// --- SETTINGS TILE ---
+  Widget _settingsItem(
+    IconData icon,
+    String text,
+    VoidCallback onTap, {
+    Color color = Colors.black,
   }) {
     return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(title, style: TextStyle(color: color)),
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: const Color(0xFF6A1B9A)),
+      title: Text(text, style: TextStyle(color: color, fontSize: 15)),
       trailing: const Icon(
         Icons.arrow_forward_ios,
         size: 16,
@@ -248,4 +222,9 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
       onTap: onTap,
     );
   }
+
+  Widget _divider() => const Padding(
+    padding: EdgeInsets.symmetric(vertical: 4),
+    child: Divider(height: 1),
+  );
 }

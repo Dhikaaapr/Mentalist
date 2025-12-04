@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/counselor_login_page.dart'; // pastikan path benar
+import 'auth/counselor_login_page.dart'; // pastikan path benar
 
 void main() {
   runApp(const MentalistApp());

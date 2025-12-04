@@ -1,8 +1,11 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'login_page.dart';
+import '../theme/colors.dart';
+import 'schedule_page.dart';
+import 'chat_list_page.dart';
+import 'profile_page.dart';
+import 'counselor_page.dart';
+import 'counseling_session_page.dart';
+import 'history_page.dart';
 
 class UserDashboardPage extends StatefulWidget {
   final String userName;
@@ -21,374 +24,436 @@ class UserDashboardPage extends StatefulWidget {
 }
 
 class _UserDashboardPageState extends State<UserDashboardPage> {
-  int _selectedIndex = 0;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  int currentIndex = 0;
 
-  final List<Map<String, dynamic>> counselors = [
-    {
-      'name': 'Dr. Ratna',
-      'spec': 'Psikolog Klinis',
-      'rating': 4.9,
-      'online': true,
-      'desc': 'Spesialis kecemasan & depresi',
-    },
-    {
-      'name': 'Budi Putra, M.Psi',
-      'spec': 'Psikolog',
-      'rating': 4.7,
-      'online': false,
-      'desc': 'Hubungan & stress kerja',
-    },
-    {
-      'name': 'Sinta',
-      'spec': 'Konselor',
-      'rating': 4.8,
-      'online': true,
-      'desc': 'Remaja & keluarga',
-    },
+  late final List<Widget> pages = [
+    HomeView(name: widget.userName, photo: widget.userPhotoUrl),
+    const SchedulePage(),
+    const ChatListPage(),
+    const ProfilePage(),
   ];
-
-  String? selectedCounselor;
-
-  Future<void> _logout() async {
-    try {
-      await _googleSignIn.signOut();
-    } catch (_) {}
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-      (route) => false,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xfff5f7fb),
-      appBar: AppBar(
-        title: const Text(
-          "MindCare Dashboard",
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: AppColors.background,
+      body: IndexedStack(index: currentIndex, children: pages),
+      bottomNavigationBar: _bottomNav(),
+    );
+  }
+
+  Widget _bottomNav() {
+    return BottomNavigationBar(
+      currentIndex: currentIndex,
+      onTap: (index) => setState(() => currentIndex = index),
+      selectedItemColor: AppColors.primary,
+      unselectedItemColor: Colors.grey,
+      backgroundColor: Colors.white,
+      type: BottomNavigationBarType.fixed,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.calendar_month),
+          label: "Schedule",
         ),
-        backgroundColor: const Color.fromARGB(255, 239, 115, 227),
-        foregroundColor: Colors.white,
+        BottomNavigationBarItem(
+          icon: Icon(Icons.chat_bubble_outline),
+          label: "Chat",
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: "Profile",
+        ),
+      ],
+    );
+  }
+}
+
+class HomeView extends StatefulWidget {
+  final String name;
+  final String? photo;
+
+  const HomeView({super.key, required this.name, this.photo});
+
+  @override
+  State<HomeView> createState() => _HomeViewState();
+}
+
+class _HomeViewState extends State<HomeView> {
+  String? selectedMood;
+
+  List<Color> weeklyColors = List.generate(7, (_) => Colors.grey.shade300);
+
+  final moods = ["😄", "😊", "😐", "😕", "😭"];
+  final weeklyLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  final quickMenu = [
+    {"icon": Icons.local_hospital_rounded, "label": "Counseling"},
+    {"icon": Icons.event_available, "label": "Schedule"},
+    {"icon": Icons.search_rounded, "label": "Find Counselor"},
+    {"icon": Icons.history, "label": "History"},
+  ];
+
+  final newsData = [
+    {
+      "title": "How to manage anxiety?",
+      "img": "https://picsum.photos/200/300?1",
+    },
+    {
+      "title": "Breathing exercises to relax",
+      "img": "https://picsum.photos/200/300?2",
+    },
+    {"title": "Signs of burnout?", "img": "https://picsum.photos/200/300?3"},
+  ];
+
+  void _selectMood(String mood) {
+    setState(() {
+      selectedMood = mood;
+      weeklyColors[DateTime.now().weekday - 1] = _getMoodColor(mood);
+    });
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Mood Saved 😊"),
+        content: Text("Mood kamu hari ini: $mood"),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: "Logout",
-            onPressed: _logout,
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Oke"),
           ),
-        ],
-      ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          _buildDashboardView(),
-          _buildCounselorView(),
-          _buildSessionView(),
-          _buildProfileView(),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: const Color.fromARGB(255, 239, 115, 227),
-        unselectedItemColor: Colors.grey,
-        onTap: (index) => setState(() => _selectedIndex = index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: "Dashboard",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: "Konselor"),
-          BottomNavigationBarItem(icon: Icon(Icons.event_note), label: "Sesi"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profil"),
         ],
       ),
     );
   }
 
-  // ======== VIEW: Dashboard Utama ========
-  Widget _buildDashboardView() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          _buildGreetingCard(),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildInfoCard("Sesi Terjadwal", "Tidak ada sesi"),
-              ),
-              const SizedBox(width: 10),
-              Expanded(child: _buildInfoCard("Mood Minggu Ini", "75%")),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildRecommendationCard(),
-        ],
-      ),
-    );
+  Color _getMoodColor(String mood) {
+    switch (mood) {
+      case "😄":
+        return Colors.greenAccent.shade200;
+      case "😊":
+        return Colors.lightGreen.shade200;
+      case "😐":
+        return Colors.amber.shade200;
+      case "😕":
+        return Colors.orange.shade300;
+      case "😭":
+        return Colors.red.shade300;
+      default:
+        return Colors.grey.shade300;
+    }
   }
 
-  Widget _buildGreetingCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundImage: widget.userPhotoUrl != null
-                ? NetworkImage(widget.userPhotoUrl!)
-                : null,
-            backgroundColor: Colors.pinkAccent.withValues(alpha: 0.2),
-            child: widget.userPhotoUrl == null
-                ? const Icon(Icons.person, color: Colors.pinkAccent, size: 30)
-                : null,
-          ),
-
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // HEADER
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  "Halo, ${widget.userName.split(' ')[0]} 👋",
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundImage: widget.photo != null
+                          ? NetworkImage(widget.photo!)
+                          : null,
+                      child: widget.photo == null
+                          ? const Icon(Icons.person, size: 30)
+                          : null,
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      "Mentalist",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  "Bagaimana perasaanmu hari ini?",
-                  style: TextStyle(color: Colors.grey),
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.notifications),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildInfoCard(String title, String value) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 25),
 
-  Widget _buildRecommendationCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Rekomendasi Konselor",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 10),
-          Column(
-            children: counselors.map((c) {
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: const Color.fromARGB(255, 239, 115, 227),
-                  child: Text(
-                    c['name'][0],
-                    style: const TextStyle(color: Colors.white),
+            // MOOD SECTION
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: moods.map((m) {
+                final selected = m == selectedMood;
+                return GestureDetector(
+                  onTap: () => _selectMood(m),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected
+                            ? Colors.blueAccent
+                            : Colors.grey.shade300,
+                        width: selected ? 3 : 1,
+                      ),
+                      color: selected
+                          ? Colors.blue.shade50
+                          : Colors.transparent,
+                    ),
+                    child: Text(m, style: const TextStyle(fontSize: 22)),
                   ),
-                ),
-                title: Text(c['name']),
-                subtitle: Text("${c['spec']} • ${c['rating']} ★"),
-                trailing: c['online']
-                    ? const Icon(Icons.circle, color: Colors.green, size: 14)
-                    : const Icon(Icons.circle, color: Colors.grey, size: 14),
-                onTap: () {
-                  setState(() {
-                    selectedCounselor = c['name'];
-                    _selectedIndex = 1;
-                  });
-                },
-              );
-            }).toList(),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 238, 125, 208),
-            ),
-            onPressed: () {},
-            child: const Text("Minta Konseling"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ======== VIEW: Konselor ========
-  Widget _buildCounselorView() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: counselors.length,
-      itemBuilder: (context, index) {
-        final c = counselors[index];
-        return Card(
-          elevation: 2,
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.deepPurple,
-              child: Text(
-                c['name'][0],
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-            title: Text(c['name']),
-            subtitle: Text("${c['spec']} • ${c['rating']} ★"),
-            trailing: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Memulai chat dengan ${c['name']}')),
                 );
-              },
-              child: const Text("Chat"),
+              }).toList(),
             ),
-          ),
-        );
-      },
-    );
-  }
 
-  // ======== VIEW: Sesi ========
-  Widget _buildSessionView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.event_note,
-            size: 80,
-            color: Color.fromARGB(255, 239, 115, 227),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            "Belum ada sesi aktif.",
-            style: TextStyle(fontSize: 18, color: Colors.grey),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 239, 115, 227),
+            const SizedBox(height: 30),
+
+            const Text(
+              "Mood Tracker",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            onPressed: () {},
-            child: const Text("Buat Sesi Baru"),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 14),
 
-  // ======== VIEW: Profil User ========
-  Widget _buildProfileView() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: const Color.fromARGB(255, 239, 115, 227),
-                    backgroundImage: widget.userPhotoUrl != null
-                        ? NetworkImage(widget.userPhotoUrl!)
-                        : null,
-                    child: widget.userPhotoUrl == null
-                        ? Text(
-                            widget.userName[0].toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                            ),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            SizedBox(
+              height: 90,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(7, (i) {
+                  return Column(
                     children: [
-                      Text(
-                        widget.userName,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        height: 50,
+                        width: 30,
+                        decoration: BoxDecoration(
+                          color: weeklyColors[i],
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
+                      const SizedBox(height: 6),
                       Text(
-                        widget.userEmail,
-                        style: const TextStyle(color: Colors.grey),
+                        weeklyLabels[i],
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
+                  );
+                }),
+              ),
+            ),
+
+            const SizedBox(height: 25),
+            Divider(color: Colors.grey.shade300),
+            const SizedBox(height: 18),
+
+            // QUICK MENU
+            const Text(
+              "Quick Menu",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 15),
+
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: quickMenu.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 14,
+                crossAxisSpacing: 14,
+                childAspectRatio: 1.15,
+              ),
+              itemBuilder: (context, i) {
+                return GestureDetector(
+                  onTap: () {
+                    if (quickMenu[i]["label"] == "Find Counselor") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CounselorPage(),
+                        ),
+                      );
+                    } else if (quickMenu[i]["label"] == "Schedule") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SchedulePage()),
+                      );
+                    } else if (quickMenu[i]["label"] == "Counseling") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CounselingSessionPage(),
+                        ),
+                      );
+                    }
+                    /// 👇 FITUR BARU HISTORY
+                    else if (quickMenu[i]["label"] == "History") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => HistoryPage(userId: widget.name),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "${quickMenu[i]["label"]} Coming soon 🚧",
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          quickMenu[i]["icon"] as IconData,
+                          size: 35,
+                          color: AppColors.primary,
+                        ),
+
+                        const SizedBox(height: 10),
+                        Text(
+                          quickMenu[i]["label"].toString(),
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 30),
+
+            // UPCOMING SESSION
+            const Text(
+              "Upcoming Session",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              const Text(
-                "Bio Singkat",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: "Tuliskan sesuatu tentang dirimu...",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+              child: Row(
+                children: const [
+                  Icon(Icons.calendar_month, color: Colors.blue, size: 28),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      "Next counseling with Dr. Maya\nToday at 4:00 PM",
+                      style: TextStyle(fontSize: 15),
+                    ),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 239, 115, 227),
-                ),
-                onPressed: () {},
-                child: const Text("Simpan"),
+            ),
+
+            const SizedBox(height: 30),
+
+            // NEWS
+            const Text(
+              "Recommended for you",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 14),
+
+            SizedBox(
+              height: 170,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: newsData.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 14),
+                itemBuilder: (_, i) {
+                  return Container(
+                    width: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      image: DecorationImage(
+                        image: NetworkImage(newsData[i]["img"]!),
+                        fit: BoxFit.cover,
+                        opacity: .8,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Text(
+                          newsData[i]["title"]!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            shadows: [
+                              Shadow(color: Colors.black, blurRadius: 6),
+                            ],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+
+            const SizedBox(height: 30),
+
+            // DAILY QUOTE
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Text(
+                "“Sometimes the smallest step in the right direction ends up being the biggest step of your life.” 💙",
+                style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic),
+              ),
+            ),
+
+            const SizedBox(height: 60),
+          ],
         ),
       ),
     );
