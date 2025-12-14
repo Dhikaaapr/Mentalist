@@ -22,6 +22,8 @@ class _LoginPageState extends State<LoginPage> {
   bool isLoading = false;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ["email", "profile", "openid"],
+    serverClientId:
+        "253231344096-rfjhteso7p463jl44m6663qtp5bfpaf9.apps.googleusercontent.com",
   );
 
   @override
@@ -82,6 +84,8 @@ class _LoginPageState extends State<LoginPage> {
       // Sign in dengan Google
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
 
+      debugPrint("GoogleSignIn: ${account}");
+
       if (account == null) {
         // User membatalkan login
         if (!mounted) return;
@@ -97,6 +101,8 @@ class _LoginPageState extends State<LoginPage> {
 
       // Cek ID Token
       final String? idToken = googleAuth.idToken;
+
+      debugPrint("idToken: ${idToken}");
 
       if (idToken == null || idToken.isEmpty) {
         throw Exception(
