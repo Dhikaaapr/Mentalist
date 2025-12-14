@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 import 'schedule_page.dart';
-import 'chat_list_page.dart';
 import 'profile_page.dart';
 import 'counselor_page.dart';
 import 'counseling_session_page.dart';
 import 'history_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'notification_page.dart';
 
 class UserDashboardPage extends StatefulWidget {
   final String userName;
@@ -29,7 +30,6 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   late final List<Widget> pages = [
     HomeView(name: widget.userName, photo: widget.userPhotoUrl),
     const SchedulePage(),
-    const ChatListPage(),
     const ProfilePage(),
   ];
 
@@ -43,28 +43,81 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   }
 
   Widget _bottomNav() {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: (index) => setState(() => currentIndex = index),
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: Colors.grey,
-      backgroundColor: Colors.white,
-      type: BottomNavigationBarType.fixed,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.calendar_month),
-          label: "Schedule",
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 8),
+      height: 65,
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 69, 137, 255),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _navItem(Icons.home_rounded, 0, "Home"),
+          _navItem(Icons.calendar_month_rounded, 1, "Schedule"),
+          _navItem(Icons.person_rounded, 2, "Profile"),
+        ],
+      ),
+    );
+  }
+
+  Widget _navItem(IconData icon, int index, String label) {
+    bool active = currentIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        ("NAV TO INDEX → $index");
+        setState(() => currentIndex = index);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: active ? 14 : 10,
+          vertical: active ? 6 : 4,
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.chat_bubble_outline),
-          label: "Chat",
+        decoration: BoxDecoration(
+          color: active
+              ? Colors.white.withValues(alpha: 0.20)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          label: "Profile",
+        child: Row(
+          children: [
+            AnimatedScale(
+              duration: const Duration(milliseconds: 220),
+              scale: active ? 1.15 : 1.0,
+              child: Icon(icon, size: 24, color: Colors.white),
+            ),
+
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              width: active ? 48 : 0,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 250),
+                opacity: active ? 1 : 0,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -82,7 +135,46 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   String? selectedMood;
 
+  Map<String, String?> weeklyMood = {
+    "Mon": null,
+    "Tue": null,
+    "Wed": null,
+    "Thu": null,
+    "Fri": null,
+    "Sat": null,
+    "Sun": null,
+  };
+
   List<Color> weeklyColors = List.generate(7, (_) => Colors.grey.shade300);
+  void _loadWeeklyMood() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Cek minggu baru
+    String currentWeek = "${DateTime.now().year}-${DateTime.now().weekday}";
+    String? savedWeek = prefs.getString("saved_week");
+
+    if (savedWeek != currentWeek) {
+      // reset semua mood bila minggu baru
+      for (var day in weeklyLabels) {
+        prefs.remove("mood_$day");
+        weeklyMood[day] = null;
+      }
+      prefs.setString("saved_week", currentWeek);
+    }
+
+    // Load data mood
+    for (int i = 0; i < weeklyLabels.length; i++) {
+      String day = weeklyLabels[i];
+      String? mood = prefs.getString("mood_$day");
+
+      if (mood != null) {
+        weeklyMood[day] = mood;
+        weeklyColors[i] = _getMoodColor(mood);
+      }
+    }
+
+    setState(() {});
+  }
 
   final moods = ["😄", "😊", "😐", "😕", "😭"];
   final weeklyLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -106,11 +198,21 @@ class _HomeViewState extends State<HomeView> {
     {"title": "Signs of burnout?", "img": "https://picsum.photos/200/300?3"},
   ];
 
-  void _selectMood(String mood) {
+  void _selectMood(String mood) async {
+    final prefs = await SharedPreferences.getInstance();
+    String today = weeklyLabels[DateTime.now().weekday - 1];
+
     setState(() {
       selectedMood = mood;
+      weeklyMood[today] = mood;
       weeklyColors[DateTime.now().weekday - 1] = _getMoodColor(mood);
     });
+
+    // simpan ke shared prefs
+    prefs.setString("mood_$today", mood);
+
+    // CEK: widget masih mounted atau tidak
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -142,6 +244,12 @@ class _HomeViewState extends State<HomeView> {
       default:
         return Colors.grey.shade300;
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWeeklyMood();
   }
 
   @override
@@ -178,7 +286,14 @@ class _HomeViewState extends State<HomeView> {
                   ],
                 ),
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationPage(),
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.notifications),
                 ),
               ],
@@ -200,7 +315,7 @@ class _HomeViewState extends State<HomeView> {
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: selected
-                            ? Colors.blueAccent
+                            ? const Color.fromARGB(255, 69, 137, 255)
                             : Colors.grey.shade300,
                         width: selected ? 3 : 1,
                       ),
@@ -294,9 +409,7 @@ class _HomeViewState extends State<HomeView> {
                           builder: (_) => const CounselingSessionPage(),
                         ),
                       );
-                    }
-                    /// 👇 FITUR BARU HISTORY
-                    else if (quickMenu[i]["label"] == "History") {
+                    } else if (quickMenu[i]["label"] == "History") {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -350,7 +463,7 @@ class _HomeViewState extends State<HomeView> {
 
             // UPCOMING SESSION
             const Text(
-              "Upcoming Session",
+              "Schedule Session",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
@@ -358,23 +471,66 @@ class _HomeViewState extends State<HomeView> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                color: const Color.fromARGB(255, 69, 137, 255),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
                   ),
                 ],
               ),
               child: Row(
-                children: const [
-                  Icon(Icons.calendar_month, color: Colors.blue, size: 28),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      "Next counseling with Dr. Maya\nToday at 4:00 PM",
-                      style: TextStyle(fontSize: 15),
+                children: [
+                  // FOTO DOKTER
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      "https://randomuser.me/api/portraits/women/44.jpg",
+                      height: 65,
+                      width: 65,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+
+                  const SizedBox(width: 14),
+
+                  // NAMA + JADWAL
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        "Dr. Maya Putri",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        "Wednesday, 4:00 PM",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color.fromARGB(255, 248, 247, 247),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const Spacer(),
+
+                  // ICON NEXT
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF4589FF).withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 16,
+                      color: Color(0xFF4589FF),
                     ),
                   ),
                 ],
@@ -438,7 +594,6 @@ class _HomeViewState extends State<HomeView> {
 
             const SizedBox(height: 30),
 
-            // DAILY QUOTE
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(18),

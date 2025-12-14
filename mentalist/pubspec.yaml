@@ -19,6 +19,9 @@ dependencies:
   google_sign_in: ^6.2.1
   table_calendar: ^3.0.9
   flutter_svg: ^2.0.10
+  shared_preferences: ^2.2.0
+  supabase_flutter: ^2.5.0
+  logger: ^2.4.0
 
 dev_dependencies:
   flutter_test:
@@ -33,6 +36,7 @@ flutter:
   assets:
     - assets/Google.png
     - assets/logo.png
+    - assets/loadingmentalist.png
 
   fonts:
     - family: Poppins

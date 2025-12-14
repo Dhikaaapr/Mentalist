@@ -5,6 +5,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../screens/user_dashboard.dart';
 import '../auth/register_page.dart';
 import '../auth/forgoutpass.dart';
+import '../services/api_service.dart';
+import '../utils/logger.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,19 +20,36 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
 
   bool isLoading = false;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ["email", "profile"]);
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ["email", "profile", "openid"],
+  );
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   /// -------------------------------
   /// LOGIN MANUAL
   /// -------------------------------
   void _loginManual() async {
+    // Validasi input
+    if (emailController.text.trim().isEmpty ||
+        passwordController.text.trim().isEmpty) {
+      _showSnackBar("Harap isi email dan password!", Colors.redAccent);
+      return;
+    }
+
     setState(() => isLoading = true);
 
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // TODO: Ganti dengan API call sebenarnya
+      await Future.delayed(const Duration(seconds: 1));
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -40,53 +59,135 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Harap isi email dan password!"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar("Login gagal: ${e.toString()}", Colors.redAccent);
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
-
-    setState(() => isLoading = false);
   }
 
+  /// -------------------------------
+  /// LOGIN WITH GOOGLE
+  /// -------------------------------
   Future<void> _loginWithGoogle() async {
-    try {
-      setState(() => isLoading = true);
+    setState(() => isLoading = true);
 
+    try {
+      // Sign out terlebih dahulu untuk memastikan user bisa pilih akun
+      await _googleSignIn.signOut();
+
+      // Sign in dengan Google
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
 
-      if (account != null) {
+      if (account == null) {
+        // User membatalkan login
+        if (!mounted) return;
+        _showSnackBar("Login dibatalkan", Colors.orangeAccent);
+        return;
+      }
+
+      AppLogger.info("✅ Google account signed in: ${account.email}");
+
+      // Dapatkan authentication tokens
+      final GoogleSignInAuthentication googleAuth =
+          await account.authentication;
+
+      // Cek ID Token
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null || idToken.isEmpty) {
+        throw Exception(
+          "ID Token tidak tersedia. Pastikan:\n"
+          "1. SHA-1 fingerprint sudah terdaftar di Google Cloud Console\n"
+          "2. OAuth 2.0 Client ID sudah dikonfigurasi dengan benar\n"
+          "3. google-services.json (Android) atau GoogleService-Info.plist (iOS) sudah ditambahkan",
+        );
+      }
+
+      AppLogger.info("✅ ID Token diperoleh (${idToken.length} karakter)");
+
+      // Kirim ke backend
+      AppLogger.info("🔄 Mengirim ID Token ke backend...");
+      final response = await ApiService.loginWithGoogle(idToken);
+
+      if (!mounted) return;
+
+      if (response != null && response['success'] == true) {
+        AppLogger.info("✅ Login berhasil!");
+
+        // Navigasi ke dashboard
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => UserDashboardPage(
-              userName: account.displayName ?? "User",
-              userEmail: account.email,
-              userPhotoUrl: account.photoUrl, // 👈 Foto muncul seperti login 1
+              userName:
+                  response['user']?['name'] ?? account.displayName ?? "User",
+              userEmail: response['user']?['email'] ?? account.email,
+              userPhotoUrl: response['user']?['picture'] ?? account.photoUrl,
             ),
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Login dibatalkan pengguna."),
-            backgroundColor: Colors.orangeAccent,
-          ),
-        );
+        // Login gagal
+        final errorMessage =
+            response?['message'] ??
+            response?['error'] ??
+            "Login gagal. Silakan coba lagi.";
+
+        AppLogger.error("❌ Login gagal: $errorMessage");
+        _showSnackBar(errorMessage, Colors.redAccent);
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Terjadi kesalahan: $e"),
-          backgroundColor: Colors.redAccent,
-        ),
+    } on Exception catch (e) {
+      AppLogger.error('❌ Exception: $e');
+      if (!mounted) return;
+      _showSnackBar(
+        e.toString().replaceAll('Exception: ', ''),
+        Colors.redAccent,
       );
+    } catch (e) {
+      AppLogger.error('❌ Error: $e');
+      if (!mounted) return;
+
+      String errorMessage = "Terjadi kesalahan saat login Google";
+
+      // Deteksi error spesifik
+      if (e.toString().contains("sign_in_failed") ||
+          e.toString().contains("ApiException")) {
+        errorMessage =
+            "Login Google gagal.\n\n"
+            "Troubleshooting:\n"
+            "1. Pastikan SHA-1 fingerprint sudah terdaftar di Google Cloud Console\n"
+            "2. Periksa konfigurasi OAuth 2.0 Client ID\n"
+            "3. Pastikan google-services.json sudah ditambahkan";
+      } else if (e.toString().contains("network") ||
+          e.toString().contains("SocketException")) {
+        errorMessage =
+            "Tidak dapat terhubung ke server. Periksa koneksi internet Anda.";
+      }
+
+      _showSnackBar(errorMessage, Colors.redAccent);
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
+  }
+
+  /// -------------------------------
+  /// HELPER: SHOW SNACKBAR
+  /// -------------------------------
+  void _showSnackBar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -113,9 +214,11 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 35),
 
+                // Email Field
                 TextField(
                   controller: emailController,
                   keyboardType: TextInputType.emailAddress,
+                  enabled: !isLoading,
                   decoration: InputDecoration(
                     labelText: "Email",
                     prefixIcon: const Icon(Icons.email_outlined),
@@ -129,9 +232,11 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 20),
 
+                // Password Field
                 TextField(
                   controller: passwordController,
                   obscureText: true,
+                  enabled: !isLoading,
                   decoration: InputDecoration(
                     labelText: "Password",
                     prefixIcon: const Icon(Icons.lock_outline),
@@ -148,14 +253,16 @@ class _LoginPageState extends State<LoginPage> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ForgotPassPage(),
-                        ),
-                      );
-                    },
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPassPage(),
+                              ),
+                            );
+                          },
                     child: const Text(
                       "Forgot password?",
                       style: TextStyle(fontSize: 13, color: Colors.blueAccent),
@@ -164,6 +271,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 30),
 
+                // Login Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -174,9 +282,17 @@ class _LoginPageState extends State<LoginPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
+                      disabledBackgroundColor: Colors.grey.shade300,
                     ),
                     child: isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
                         : const Text(
                             "Masuk",
                             style: TextStyle(fontSize: 18, color: Colors.white),
@@ -185,10 +301,22 @@ class _LoginPageState extends State<LoginPage> {
                 ),
 
                 const SizedBox(height: 25),
-                const Text("Atau", style: TextStyle(color: Colors.black54)),
-                const SizedBox(height: 20),
+                const Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        "Atau",
+                        style: TextStyle(color: Colors.black54),
+                      ),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 25),
 
-                /// ------ Button Google Login Mode Pilih Akun ------
+                // Google Login Button
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -204,23 +332,29 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                       side: const BorderSide(color: Colors.black26),
+                      disabledForegroundColor: Colors.grey,
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 30),
 
+                // Register Link
                 GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const RegisterPage()),
-                    );
-                  },
-                  child: const Text(
+                  onTap: isLoading
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(),
+                            ),
+                          );
+                        },
+                  child: Text(
                     "Belum punya akun? Daftar",
                     style: TextStyle(
-                      color: Colors.blueAccent,
+                      color: isLoading ? Colors.grey : Colors.blueAccent,
                       fontSize: 15,
                       decoration: TextDecoration.underline,
                     ),
