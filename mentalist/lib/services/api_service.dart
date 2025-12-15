@@ -6,9 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logger.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  // emulator
+  // static const String baseUrl = 'http://10.0.2.2:8000/api';
+
   // Untuk testing di physical device, ganti dengan IP komputer Anda:
-  // static const String baseUrl = 'http://192.168.x.x:8000/api';
+  static const String baseUrl = 'http://192.168.19.134:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -122,7 +124,9 @@ class ApiService {
     } on SocketException catch (e) {
       AppLogger.error('❌ Network Error: $e');
       AppLogger.info('💡 Troubleshooting:');
-      AppLogger.info('   1. Pastikan backend Laravel berjalan (php artisan serve)');
+      AppLogger.info(
+        '   1. Pastikan backend Laravel berjalan (php artisan serve)',
+      );
       AppLogger.info('   2. Untuk emulator, gunakan http://10.0.2.2:8000');
       AppLogger.info(
         '   3. Untuk physical device, gunakan IP komputer (misal: http://192.168.1.100:8000)',
@@ -266,7 +270,9 @@ class ApiService {
 
           AppLogger.info('✅ Logged out from backend');
         } catch (e) {
-          AppLogger.warning('⚠️ Backend logout failed, but clearing local token: $e');
+          AppLogger.warning(
+            '⚠️ Backend logout failed, but clearing local token: $e',
+          );
         }
       }
 

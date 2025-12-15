@@ -84,7 +84,7 @@ class _LoginPageState extends State<LoginPage> {
       // Sign in dengan Google
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
 
-      debugPrint("GoogleSignIn: ${account}");
+      debugPrint("GoogleSignIn: $account");
 
       if (account == null) {
         // User membatalkan login
@@ -102,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
       // Cek ID Token
       final String? idToken = googleAuth.idToken;
 
-      debugPrint("idToken: ${idToken}");
+      debugPrint("idToken: $idToken");
 
       if (idToken == null || idToken.isEmpty) {
         throw Exception(
