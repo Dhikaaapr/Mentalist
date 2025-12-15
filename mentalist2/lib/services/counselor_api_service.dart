@@ -7,10 +7,10 @@ import '../utils/logger.dart';
 
 class CounselorApiService {
   // emulator
-  // static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://192.168.19.134:8000/api';
+  // static const String baseUrl = 'http://192.168.19.134:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -22,11 +22,11 @@ class CounselorApiService {
     String password,
   ) async {
     try {
-      AppLogger.info('📡 [COUNSELOR] Request → $baseUrl/auth/counselor/login');
+      AppLogger.info('📡 [COUNSELOR] Request → $baseUrl/auth/login (Note: Backend endpoint must be created)');
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/auth/counselor/login'),
+            Uri.parse('$baseUrl/auth/login'), // Note: This endpoint needs to be created in backend
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -55,7 +55,14 @@ class CounselorApiService {
         if (data['token'] != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('accessToken', data['token']);
-          await prefs.setString('role', 'counselor');
+
+          // Determine role from response or default to counselor
+          String userRole = 'counselor';
+          if (data['user'] != null && data['user']['role'] != null) {
+            userRole = data['user']['role']['name'] ?? 'counselor';
+          }
+          await prefs.setString('role', userRole);
+
           AppLogger.info('[COUNSELOR] Token disimpan');
         }
 
@@ -74,7 +81,7 @@ class CounselorApiService {
       if (response.statusCode == 403) {
         return {
           'success': false,
-          'message': 'Akun konselor tidak aktif',
+          'message': 'Akun tidak aktif',
           'error': 'forbidden',
         };
       }
@@ -114,12 +121,12 @@ class CounselorApiService {
   static Future<Map<String, dynamic>?> loginWithGoogle(String idToken) async {
     try {
       AppLogger.info(
-        '📡 [COUNSELOR] Google login → $baseUrl/auth/counselor/google/login',
+        '📡 [COUNSELOR] Google login → $baseUrl/auth/google/login',
       );
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/auth/counselor/google/login'),
+            Uri.parse('$baseUrl/auth/google/login'),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -136,7 +143,13 @@ class CounselorApiService {
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('accessToken', data['token']);
-        await prefs.setString('role', 'counselor');
+
+        // Determine role from response - Google login returns user object with role
+        String userRole = 'user'; // default role
+        if (data['user'] != null && data['user']['role'] != null) {
+          userRole = data['user']['role']['name'] ?? 'user';
+        }
+        await prefs.setString('role', userRole);
 
         data['success'] = true;
         return data;
@@ -146,6 +159,14 @@ class CounselorApiService {
         return {
           'success': false,
           'message': 'Akun Google tidak terdaftar sebagai konselor',
+          'error': 'unauthorized',
+        };
+      }
+
+      if (response.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Akun Google tidak terdaftar atau tidak valid',
           'error': 'unauthorized',
         };
       }
@@ -166,7 +187,7 @@ class CounselorApiService {
   }
 
   /// -------------------------------
-  /// GET PROFILE KONSELOR
+  /// GET AUTHENTICATED USER PROFILE
   /// -------------------------------
   static Future<Map<String, dynamic>?> getProfile() async {
     try {
@@ -181,8 +202,9 @@ class CounselorApiService {
         };
       }
 
+      // Using Laravel Sanctum's standard endpoint for getting authenticated user
       final response = await http.get(
-        Uri.parse('$baseUrl/counselor'),
+        Uri.parse('$baseUrl/user'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -193,7 +215,7 @@ class CounselorApiService {
         return {'success': true, 'data': json.decode(response.body)};
       }
 
-      return {'success': false, 'message': 'Gagal mengambil profil konselor'};
+      return {'success': false, 'message': 'Gagal mengambil profil pengguna'};
     } catch (e) {
       AppLogger.error('[COUNSELOR] Get profile error: $e');
       return {'success': false, 'message': 'Terjadi kesalahan'};

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "253231344096",
+    "project_id": "mentalist-project",
+    "storage_bucket": "mentalist-project.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:253231344096:android:mentalist-app",
+        "android_client_info": {
+          "package_name": "com.example.mentalist2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "253231344096-hn2mh0tdctq3qg5sofp88bro15kq8788.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mentalist2",
+            "certificate_hash": ""
+          }
+        },
+        {
+          "client_id": "253231344096-hn2mh0tdctq3qg5sofp88bro15kq8788.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDummyKeyForTesting"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "253231344096-hn2mh0tdctq3qg5sofp88bro15kq8788.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
