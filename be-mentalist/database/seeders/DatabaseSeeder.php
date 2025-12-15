@@ -16,22 +16,32 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $roles = collect([
-            ['name' => 'admin', 'display_name' => 'Administrator'],
-            ['name' => 'user', 'display_name' => 'User'],
-        ])->mapWithKeys(function (array $role) {
-            $model = Role::updateOrCreate(
-                ['name' => $role['name']],
-                ['display_name' => $role['display_name']]
-            );
+        $this->call(RoleSeeder::class);
 
-            return [$role['name'] => $model];
-        });
+        // Get the created roles
+        $adminRole = Role::where('name', 'admin')->first();
+        $konselorRole = Role::where('name', 'konselor')->first();
+        $userRole = Role::where('name', 'user')->first();
 
+        // Create Admin User
+        User::factory()->create([
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+            'role_id' => $adminRole->id,
+        ]);
+
+        // Create Konselor User
+        User::factory()->create([
+            'name' => 'Konselor User',
+            'email' => 'konselor@example.com',
+            'role_id' => $konselorRole->id,
+        ]);
+
+        // Create Regular User
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'role_id' => $roles['user']->id,
+            'role_id' => $userRole->id,
         ]);
     }
 }

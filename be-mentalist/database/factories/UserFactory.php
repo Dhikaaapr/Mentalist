@@ -25,11 +25,12 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            'id' => \Illuminate\Support\Str::uuid(),
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'picture' => fake()->imageUrl(200, 200),
-            'role_id' => Role::factory(),
+            'role_id' => Role::first()?->id,
             'google_id' => null,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
