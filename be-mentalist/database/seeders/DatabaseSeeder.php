@@ -24,24 +24,47 @@ class DatabaseSeeder extends Seeder
         $userRole = Role::where('name', 'user')->first();
 
         // Create Admin User
-        User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
-            'role_id' => $adminRole->id,
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name' => 'Admin User',
+                'role_id' => $adminRole->id,
+                'id' => \Illuminate\Support\Str::uuid(),
+            ]
+        );
 
         // Create Konselor User
-        User::factory()->create([
-            'name' => 'Konselor User',
-            'email' => 'konselor@example.com',
-            'role_id' => $konselorRole->id,
-        ]);
+        User::updateOrCreate(
+            ['email' => 'konselor@example.com'],
+            [
+                'name' => 'Konselor User',
+                'role_id' => $konselorRole->id,
+                'id' => \Illuminate\Support\Str::uuid(),
+            ]
+        );
 
         // Create Regular User
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-            'role_id' => $userRole->id,
-        ]);
+        User::updateOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'role_id' => $userRole->id,
+                'id' => \Illuminate\Support\Str::uuid(),
+            ]
+        );
+
+        // Create Google User (Konselor role)
+        User::updateOrCreate(
+            ['email' => 'andhika.saputra@students.paramadina.ac.id'],
+            [
+                'id' => \Illuminate\Support\Str::uuid(),
+                'name' => 'Andhika Presha Saputra',
+                'picture' => 'https://via.placeholder.com/200x200.png/007755?text=AS',
+                'role_id' => $konselorRole->id,
+                'google_id' => '112233445566778899001', // Sample Google ID
+                'password' => null, // No password since using Google login
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }
