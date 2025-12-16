@@ -58,6 +58,15 @@ class _LoginPageState extends State<LoginPage> {
       if (response != null && response['success'] == true) {
         AppLogger.info("✅ Login berhasil!");
 
+        // Check user role
+        final userRole = response['user']?['role']?['name'] ?? 'user';
+
+        if (userRole != 'user') {
+          AppLogger.error("❌ Akses ditolak: Role $userRole tidak diizinkan untuk user dashboard");
+          _showSnackBar("Akses ditolak: Akun dengan role $userRole tidak dapat mengakses dashboard user", Colors.redAccent);
+          return;
+        }
+
         // Navigate to dashboard
         Navigator.pushReplacement(
           context,
@@ -142,6 +151,15 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response != null && response['success'] == true) {
         AppLogger.info("✅ Login berhasil!");
+
+        // Check user role
+        final userRole = response['user']?['role']?['name'] ?? 'user';
+
+        if (userRole != 'user') {
+          AppLogger.error("❌ Akses ditolak: Role $userRole tidak diizinkan untuk user dashboard");
+          _showSnackBar("Akses ditolak: Akun dengan role $userRole tidak dapat mengakses dashboard user", Colors.redAccent);
+          return;
+        }
 
         // Navigasi ke dashboard
         Navigator.pushReplacement(
