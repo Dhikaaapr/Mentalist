@@ -47,23 +47,42 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => isLoading = true);
 
     try {
-      // TODO: Ganti dengan API call sebenarnya
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => UserDashboardPage(
-            userName: emailController.text.split('@')[0],
-            userEmail: emailController.text,
-          ),
-        ),
+      // Call API login
+      final response = await ApiService.login(
+        emailController.text.trim(),
+        passwordController.text.trim(),
       );
-    } catch (e) {
+
       if (!mounted) return;
-      _showSnackBar("Login gagal: ${e.toString()}", Colors.redAccent);
+
+      if (response != null && response['success'] == true) {
+        AppLogger.info("✅ Login berhasil!");
+
+        // Navigate to dashboard
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => UserDashboardPage(
+              userName: response['user']?['name'] ?? emailController.text.split('@')[0],
+              userEmail: response['user']?['email'] ?? emailController.text,
+              userPhotoUrl: response['user']?['picture'],
+            ),
+          ),
+        );
+      } else {
+        // Login failed
+        final errorMessage =
+            response?['message'] ??
+            response?['error'] ??
+            "Login gagal. Silakan coba lagi.";
+
+        AppLogger.error("❌ Login gagal: $errorMessage");
+        _showSnackBar(errorMessage, Colors.redAccent);
+      }
+    } catch (e) {
+      AppLogger.error('❌ Login error: $e');
+      if (!mounted) return;
+      _showSnackBar("Terjadi kesalahan saat login: ${e.toString()}", Colors.redAccent);
     } finally {
       if (mounted) {
         setState(() => isLoading = false);

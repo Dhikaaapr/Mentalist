@@ -22,11 +22,11 @@ class CounselorApiService {
     String password,
   ) async {
     try {
-      AppLogger.info('📡 [COUNSELOR] Request → $baseUrl/auth/login (Note: Backend endpoint must be created)');
+      AppLogger.info('📡 [COUNSELOR] Request → $baseUrl/auth/login');
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/auth/login'), // Note: This endpoint needs to be created in backend
+            Uri.parse('$baseUrl/auth/login'),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -153,14 +153,6 @@ class CounselorApiService {
 
         data['success'] = true;
         return data;
-      }
-
-      if (response.statusCode == 401) {
-        return {
-          'success': false,
-          'message': 'Akun Google tidak terdaftar sebagai konselor',
-          'error': 'unauthorized',
-        };
       }
 
       if (response.statusCode == 401) {

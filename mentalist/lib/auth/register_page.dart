@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
+import '../services/api_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -19,8 +20,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _register() async {
     setState(() => isLoading = true);
-
-    await Future.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
 
@@ -49,19 +48,55 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Akun berhasil dibuat! Silakan login."),
-        backgroundColor: Colors.green,
-      ),
-    );
+    try {
+      final response = await ApiService.register(
+        nameController.text.trim(),
+        emailController.text.trim(),
+        passwordController.text.trim(),
+        confirmPasswordController.text.trim(),
+      );
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-    );
+      if (!mounted) return;
 
-    setState(() => isLoading = false);
+      if (response != null && response['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Akun berhasil dibuat! Silakan login."),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+        );
+      } else {
+        // Registration failed
+        final errorMessage =
+            response?['message'] ??
+            response?['error'] ??
+            "Registrasi gagal. Silakan coba lagi.";
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Terjadi kesalahan: ${e.toString()}"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
   }
 
   @override

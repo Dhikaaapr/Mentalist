@@ -9,21 +9,236 @@ class ApiService {
   // emulator
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
-  // Untuk testing di physical device, ganti dengan IP komputer Anda:
+  // physical device
   static const String baseUrl = 'http://192.168.19.134:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
   /// -------------------------------
-  /// LOGIN WITH GOOGLE
+  /// LOGIN MANUAL USER
+  /// -------------------------------
+  static Future<Map<String, dynamic>?> login(
+    String email,
+    String password,
+  ) async {
+    try {
+      AppLogger.info('📡 [USER] Request → $baseUrl/auth/login');
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/login'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({'email': email, 'password': password}),
+          )
+          .timeout(
+            timeoutDuration,
+            onTimeout: () {
+              throw TimeoutException('Request timeout');
+            },
+          );
+
+      AppLogger.info('📡 [USER] Status: ${response.statusCode}');
+      AppLogger.debug('📬 [USER] Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data is! Map<String, dynamic>) {
+          AppLogger.error('[USER] Response bukan Map');
+          return null;
+        }
+
+        // Simpan token
+        if (data['token'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('accessToken', data['token']);
+
+          // Determine role from response
+          String userRole = 'user'; // default role
+          if (data['user'] != null && data['user']['role'] != null) {
+            userRole = data['user']['role']['name'] ?? 'user';
+          }
+          await prefs.setString('role', userRole);
+
+          AppLogger.info('[USER] Token disimpan');
+        }
+
+        data['success'] = true;
+        return data;
+      }
+
+      if (response.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Email atau password salah',
+          'error': 'unauthorized',
+        };
+      }
+
+      if (response.statusCode == 403) {
+        return {
+          'success': false,
+          'message': 'Akun tidak aktif',
+          'error': 'forbidden',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan pada server',
+        'error': 'server_error',
+      };
+    } on TimeoutException catch (e) {
+      AppLogger.error('[USER] Timeout: $e');
+      return {
+        'success': false,
+        'message': 'Koneksi timeout',
+        'error': 'timeout',
+      };
+    } on SocketException catch (e) {
+      AppLogger.error('[USER] Network error: $e');
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server',
+        'error': 'network_error',
+      };
+    } catch (e) {
+      AppLogger.error('[USER] Error: $e');
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan',
+        'error': 'unknown_error',
+      };
+    }
+  }
+
+  /// -------------------------------
+  /// REGISTER USER
+  /// -------------------------------
+  static Future<Map<String, dynamic>?> register(
+    String name,
+    String email,
+    String password,
+    String passwordConfirmation,
+  ) async {
+    try {
+      AppLogger.info('📡 [USER] Request → $baseUrl/auth/register');
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/register'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({
+              'name': name,
+              'email': email,
+              'password': password,
+              'password_confirmation': passwordConfirmation,
+            }),
+          )
+          .timeout(
+            timeoutDuration,
+            onTimeout: () {
+              throw TimeoutException('Request timeout');
+            },
+          );
+
+      AppLogger.info('📡 [USER] Status: ${response.statusCode}');
+      AppLogger.debug('📬 [USER] Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data is! Map<String, dynamic>) {
+          AppLogger.error('[USER] Response bukan Map');
+          return null;
+        }
+
+        // Simpan token
+        if (data['token'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('accessToken', data['token']);
+
+          // Determine role from response
+          String userRole = 'user';
+          if (data['user'] != null && data['user']['role'] != null) {
+            userRole = data['user']['role']['name'] ?? 'user';
+          }
+          await prefs.setString('role', userRole);
+
+          AppLogger.info('[USER] Token disimpan');
+        }
+
+        data['success'] = true;
+        return data;
+      }
+
+      if (response.statusCode == 422) {
+        final data = json.decode(response.body);
+        String errorMessage = 'Validasi gagal';
+        if (data['errors'] != null) {
+          // Get the first error message from the validation errors
+          final errors = data['errors'];
+          if (errors is Map) {
+            final firstErrorKey = errors.keys.first;
+            final firstErrorValue = errors[firstErrorKey];
+
+            if (firstErrorValue is List && firstErrorValue.isNotEmpty) {
+              errorMessage = firstErrorValue.first ?? 'Validasi gagal';
+            } else if (firstErrorValue is String) {
+              errorMessage = firstErrorValue;
+            } else {
+              errorMessage = 'Validasi gagal';
+            }
+          }
+        }
+        return {
+          'success': false,
+          'message': errorMessage,
+          'error': 'validation_error',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Registrasi gagal',
+        'error': 'server_error',
+      };
+    } on TimeoutException catch (e) {
+      AppLogger.error('[USER] Timeout: $e');
+      return {
+        'success': false,
+        'message': 'Koneksi timeout',
+        'error': 'timeout',
+      };
+    } on SocketException catch (e) {
+      AppLogger.error('[USER] Network error: $e');
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server',
+        'error': 'network_error',
+      };
+    } catch (e) {
+      AppLogger.error('[USER] Error: $e');
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan',
+        'error': 'unknown_error',
+      };
+    }
+  }
+
+  /// -------------------------------
+  /// LOGIN USER WITH GOOGLE
   /// -------------------------------
   static Future<Map<String, dynamic>?> loginWithGoogle(String idToken) async {
     try {
-      AppLogger.info('📡 Mengirim request ke: $baseUrl/auth/google/login');
-      AppLogger.debug('🔑 ID Token length: ${idToken.length}');
-      AppLogger.debug(
-        '🔑 ID Token (first 50 chars): ${idToken.substring(0, idToken.length > 50 ? 50 : idToken.length)}...',
-      );
+      AppLogger.info('📡 [USER] Google login → $baseUrl/auth/google/login');
 
       final response = await http
           .post(
@@ -34,284 +249,133 @@ class ApiService {
             },
             body: json.encode({'id_token': idToken}),
           )
-          .timeout(
-            timeoutDuration,
-            onTimeout: () {
-              throw TimeoutException(
-                'Request timeout. Pastikan backend berjalan dan dapat diakses.',
-              );
-            },
-          );
+          .timeout(timeoutDuration);
 
-      AppLogger.info('📡 Response status: ${response.statusCode}');
-      AppLogger.debug('📬 Response body: ${response.body}');
+      AppLogger.info('📡 [USER] Status: ${response.statusCode}');
+      AppLogger.debug('📬 [USER] Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        // Validasi response structure
-        if (data is! Map<String, dynamic>) {
-          AppLogger.error('❌ Response bukan Map<String, dynamic>');
-          return null;
-        }
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('accessToken', data['token']);
 
-        // Store token jika ada
-        if (data['token'] != null && data['token'].toString().isNotEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('accessToken', data['token'].toString());
-          AppLogger.info('✅ Access token disimpan');
+        // Determine role from response - Google login returns user object with role
+        String userRole = 'user'; // default role
+        if (data['user'] != null && data['user']['role'] != null) {
+          userRole = data['user']['role']['name'] ?? 'user';
         }
+        await prefs.setString('role', userRole);
 
-        // Tambahkan success flag jika belum ada
-        if (!data.containsKey('success')) {
-          data['success'] = true;
-        }
-
+        data['success'] = true;
         return data;
-      } else if (response.statusCode == 401) {
-        AppLogger.error('❌ Unauthorized - ID Token tidak valid atau expired');
+      }
+
+      if (response.statusCode == 401) {
         return {
           'success': false,
-          'message': 'Token Google tidak valid. Silakan coba lagi.',
+          'message': 'Akun Google tidak terdaftar atau tidak valid',
           'error': 'unauthorized',
         };
-      } else if (response.statusCode == 400) {
-        AppLogger.error('❌ Bad Request');
-        try {
-          final errorData = json.decode(response.body);
-          return {
-            'success': false,
-            'message':
-                errorData['message'] ??
-                errorData['error'] ??
-                'Request tidak valid',
-            'error': 'bad_request',
-          };
-        } catch (e) {
-          return {
-            'success': false,
-            'message': 'Request tidak valid',
-            'error': 'bad_request',
-          };
-        }
-      } else {
-        AppLogger.error('❌ API Error: ${response.statusCode}');
-        try {
-          final errorData = json.decode(response.body);
-          return {
-            'success': false,
-            'message':
-                errorData['message'] ??
-                errorData['error'] ??
-                'Terjadi kesalahan pada server',
-            'error': 'server_error',
-          };
-        } catch (e) {
-          return {
-            'success': false,
-            'message': 'Terjadi kesalahan pada server (${response.statusCode})',
-            'error': 'server_error',
-          };
-        }
       }
-    } on TimeoutException catch (e) {
-      AppLogger.error('❌ Timeout: $e');
-      return {
-        'success': false,
-        'message': 'Koneksi timeout. Server tidak merespons.',
-        'error': 'timeout',
-      };
-    } on SocketException catch (e) {
-      AppLogger.error('❌ Network Error: $e');
-      AppLogger.info('💡 Troubleshooting:');
-      AppLogger.info(
-        '   1. Pastikan backend Laravel berjalan (php artisan serve)',
-      );
-      AppLogger.info('   2. Untuk emulator, gunakan http://10.0.2.2:8000');
-      AppLogger.info(
-        '   3. Untuk physical device, gunakan IP komputer (misal: http://192.168.1.100:8000)',
-      );
-      AppLogger.info('   4. Pastikan firewall tidak memblokir koneksi');
 
       return {
         'success': false,
-        'message':
-            'Tidak dapat terhubung ke server.\n'
-            'Pastikan backend berjalan dan dapat diakses.',
-        'error': 'network_error',
-      };
-    } on FormatException catch (e) {
-      AppLogger.error('❌ Format Error: $e');
-      return {
-        'success': false,
-        'message': 'Format response tidak valid dari server',
-        'error': 'format_error',
-      };
-    } on http.ClientException catch (e) {
-      AppLogger.error('❌ HTTP Client Error: $e');
-      return {
-        'success': false,
-        'message': 'Gagal menghubungi server. Periksa koneksi internet Anda.',
-        'error': 'client_error',
+        'message': 'Login Google gagal',
+        'error': 'server_error',
       };
     } catch (e) {
-      AppLogger.error('❌ Unexpected Error: $e');
+      AppLogger.error('[USER] Google login error: $e');
       return {
         'success': false,
-        'message': 'Terjadi kesalahan: ${e.toString()}',
+        'message': 'Terjadi kesalahan saat login Google',
         'error': 'unknown_error',
       };
     }
   }
 
   /// -------------------------------
-  /// GET USER PROFILE
+  /// GET AUTHENTICATED USER PROFILE
   /// -------------------------------
   static Future<Map<String, dynamic>?> getProfile() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('accessToken') ?? '';
+      final token = prefs.getString('accessToken') ?? '';
 
-      if (accessToken.isEmpty) {
-        AppLogger.error('❌ No access token available');
+      if (token.isEmpty) {
         return {
           'success': false,
-          'message': 'Anda belum login',
+          'message': 'Belum login',
           'error': 'no_token',
         };
       }
 
-      AppLogger.info('📡 Fetching user profile...');
-
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/user'),
-            headers: {
-              'Authorization': 'Bearer $accessToken',
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          )
-          .timeout(
-            timeoutDuration,
-            onTimeout: () {
-              throw TimeoutException('Request timeout');
-            },
-          );
-
-      AppLogger.info('📬 Profile response: ${response.statusCode}');
+      // Using Laravel Sanctum's standard endpoint for getting authenticated user
+      final response = await http.get(
+        Uri.parse('$baseUrl/user'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        AppLogger.info('✅ Profile fetched successfully');
-        return {'success': true, 'user': data};
-      } else if (response.statusCode == 401) {
-        AppLogger.error('❌ Token expired or invalid');
-        // Clear token
+        return {'success': true, 'data': json.decode(response.body)};
+      }
+
+      return {'success': false, 'message': 'Gagal mengambil profil pengguna'};
+    } catch (e) {
+      AppLogger.error('[USER] Get profile error: $e');
+      return {'success': false, 'message': 'Terjadi kesalahan'};
+    }
+  }
+
+  /// -------------------------------
+  /// LOGOUT USER
+  /// -------------------------------
+  static Future<Map<String, dynamic>?> logout() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/logout'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Clear stored tokens
         await prefs.remove('accessToken');
-        return {
-          'success': false,
-          'message': 'Sesi Anda telah berakhir. Silakan login kembali.',
-          'error': 'token_expired',
-        };
-      } else {
-        AppLogger.error('❌ Error: ${response.statusCode} - ${response.body}');
-        return {
-          'success': false,
-          'message': 'Gagal mengambil data profil',
-          'error': 'fetch_error',
-        };
-      }
-    } on TimeoutException catch (e) {
-      AppLogger.error('❌ Timeout: $e');
-      return {
-        'success': false,
-        'message': 'Koneksi timeout',
-        'error': 'timeout',
-      };
-    } on SocketException catch (e) {
-      AppLogger.error('❌ Network Error: $e');
-      return {
-        'success': false,
-        'message': 'Tidak dapat terhubung ke server',
-        'error': 'network_error',
-      };
-    } catch (e) {
-      AppLogger.error('❌ Exception in getProfile: $e');
-      return {
-        'success': false,
-        'message': 'Terjadi kesalahan: ${e.toString()}',
-        'error': 'exception',
-      };
-    }
-  }
+        await prefs.remove('role');
 
-  /// -------------------------------
-  /// LOGOUT
-  /// -------------------------------
-  static Future<bool> logout() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('accessToken') ?? '';
-
-      // Jika ada token, coba logout dari backend
-      if (accessToken.isNotEmpty) {
-        try {
-          await http
-              .post(
-                Uri.parse('$baseUrl/logout'),
-                headers: {
-                  'Authorization': 'Bearer $accessToken',
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json',
-                },
-              )
-              .timeout(const Duration(seconds: 10));
-
-          AppLogger.info('✅ Logged out from backend');
-        } catch (e) {
-          AppLogger.warning(
-            '⚠️ Backend logout failed, but clearing local token: $e',
-          );
-        }
+        return {'success': true, 'message': 'Logout berhasil'};
       }
 
-      // Hapus token lokal
+      // Even if logout API fails, clear local storage
       await prefs.remove('accessToken');
-      AppLogger.info('✅ Local token cleared');
+      await prefs.remove('role');
 
-      return true;
+      return {'success': true, 'message': 'Logout berhasil'};
     } catch (e) {
-      AppLogger.error('❌ Exception in logout: $e');
-      // Tetap return true karena kita ingin clear local token
-      return true;
-    }
-  }
+      AppLogger.error('[USER] Logout error: $e');
 
-  /// -------------------------------
-  /// CHECK IF USER IS LOGGED IN
-  /// -------------------------------
-  static Future<bool> isLoggedIn() async {
-    try {
+      // Clear local storage anyway
       final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('accessToken') ?? '';
-      return accessToken.isNotEmpty;
-    } catch (e) {
-      AppLogger.error('❌ Error checking login status: $e');
-      return false;
-    }
-  }
+      await prefs.remove('accessToken');
+      await prefs.remove('role');
 
-  /// -------------------------------
-  /// GET STORED TOKEN
-  /// -------------------------------
-  static Future<String?> getToken() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString('accessToken');
-    } catch (e) {
-      AppLogger.error('❌ Error getting token: $e');
-      return null;
+      return {'success': true, 'message': 'Logout berhasil'};
     }
   }
 }
