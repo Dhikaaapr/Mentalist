@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../services/counselor_api_service.dart';
-import '../screens/counselor_dashboard.dart';
+import '../screens/set_weekly_availability_page.dart';
+
 import '../utils/logger.dart';
 
 class CounselorLoginPage extends StatefulWidget {
@@ -102,12 +103,15 @@ class _CounselorLoginPageState extends State<CounselorLoginPage> {
   /// -------------------------------
   void _handleLoginResponse(Map<String, dynamic>? response) {
     if (response != null && response['success'] == true) {
+      final user = response['user'];
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => CounselorDashboardPage(
-            counselorName: response['data']['name'],
-            counselorEmail: response['data']['email'],
+          builder: (_) => SetWeeklyAvailabilityPage(
+            counselorId: user['id'],
+            counselorName: user['name'],
+            counselorEmail: user['email'],
           ),
         ),
       );

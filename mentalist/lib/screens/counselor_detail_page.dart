@@ -26,7 +26,7 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Colors.pinkAccent;
+    final primaryColor = const Color.fromARGB(255, 33, 33, 228);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -156,7 +156,7 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
                   margin: const EdgeInsets.all(6),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.pinkAccent, // WARNA PINK
+                    color: const Color.fromARGB(255, 38, 51, 239),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(

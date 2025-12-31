@@ -10,7 +10,7 @@ class ApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://192.168.1.14:8000/api';
+  static const String baseUrl = 'http://10.141.31.43:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
