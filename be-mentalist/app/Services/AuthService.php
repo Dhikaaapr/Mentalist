@@ -144,6 +144,7 @@ class AuthService
 
     /**
      * Get authenticated user profile.
+     * Includes counselor_profile if user is a konselor.
      */
     public function getProfile(string $userId): array
     {
@@ -156,7 +157,7 @@ class AuthService
             ];
         }
 
-        return [
+        $response = [
             'success' => true,
             'user' => [
                 'id' => $user['id'],
@@ -170,6 +171,96 @@ class AuthService
                 ],
             ],
         ];
+
+        // Include counselor_profile if user is a konselor
+        if ($user['role_name'] === 'konselor') {
+            $userModel = \App\Models\User::with('counselorProfile')->find($userId);
+            $counselorProfile = $userModel->counselorProfile;
+            
+            if (!$counselorProfile) {
+                // Create counselor profile if doesn't exist
+                $counselorProfile = \App\Models\CounselorProfile::create([
+                    'user_id' => $userId,
+                    'is_accepting_patients' => false,
+                ]);
+            }
+
+            $response['user']['counselor_profile'] = [
+                'id' => $counselorProfile->id,
+                'is_accepting_patients' => $counselorProfile->is_accepting_patients,
+                'bio' => $counselorProfile->bio,
+                'specialization' => $counselorProfile->specialization,
+            ];
+        }
+
+        return $response;
+    }
+
+    /**
+     * Update user profile.
+     * For konselor, also updates counselor_profile fields.
+     */
+    public function updateProfile(string $userId, array $data): array
+    {
+        $user = $this->userRepository->getUserWithRole($userId);
+
+        if (!$user) {
+            return [
+                'success' => false,
+                'message' => 'User tidak ditemukan'
+            ];
+        }
+
+        // Update basic user fields
+        $userModel = \App\Models\User::find($userId);
+        
+        $userUpdates = [];
+        if (isset($data['name'])) {
+            $userUpdates['name'] = $data['name'];
+        }
+        if (isset($data['picture'])) {
+            $userUpdates['picture'] = $data['picture'];
+        }
+        
+        if (!empty($userUpdates)) {
+            $userModel->update($userUpdates);
+        }
+
+        // Update counselor profile if user is konselor
+        if ($user['role_name'] === 'konselor') {
+            $counselorProfile = $userModel->counselorProfile;
+            
+            if (!$counselorProfile) {
+                $counselorProfile = \App\Models\CounselorProfile::create([
+                    'user_id' => $userId,
+                    'is_accepting_patients' => false,
+                ]);
+            }
+
+            $counselorUpdates = [];
+            if (isset($data['bio'])) {
+                $counselorUpdates['bio'] = $data['bio'];
+            }
+            if (isset($data['specialization'])) {
+                $counselorUpdates['specialization'] = $data['specialization'];
+            }
+            if (isset($data['is_accepting_patients'])) {
+                // Handle string "true"/"false" from form-data
+                $value = $data['is_accepting_patients'];
+                if (is_string($value)) {
+                    $counselorUpdates['is_accepting_patients'] = filter_var($value, FILTER_VALIDATE_BOOLEAN);
+                } else {
+                    $counselorUpdates['is_accepting_patients'] = (bool) $value;
+                }
+            }
+
+            if (!empty($counselorUpdates)) {
+                $counselorProfile->update($counselorUpdates);
+            }
+        }
+
+        // Return updated profile
+        return $this->getProfile($userId);
     }
 
     /**

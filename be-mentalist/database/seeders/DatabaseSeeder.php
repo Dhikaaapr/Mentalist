@@ -29,6 +29,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Admin User',
                 'role_id' => $adminRole->id,
+                'password' => 'password123',
                 'id' => \Illuminate\Support\Str::uuid(),
             ]
         );
@@ -39,6 +40,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Konselor User',
                 'role_id' => $konselorRole->id,
+                'password' => 'password123',
                 'id' => \Illuminate\Support\Str::uuid(),
             ]
         );
@@ -49,6 +51,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Test User',
                 'role_id' => $userRole->id,
+                'password' => 'password123',
                 'id' => \Illuminate\Support\Str::uuid(),
             ]
         );

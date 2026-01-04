@@ -102,6 +102,7 @@ class AuthController extends Controller
     /**
      * Get authenticated user profile.
      * Controller only handles request/response, business logic is in service.
+     * For konselor role, includes counselor_profile data.
      */
     public function profile(Request $request): JsonResponse
     {
@@ -110,6 +111,38 @@ class AuthController extends Controller
         $result = $this->authService->getProfile($user->id);
 
         $status = $result['success'] ? 200 : 404;
+
+        return response()->json($result, $status);
+    }
+
+    /**
+     * Update authenticated user profile.
+     * For konselor role, can also update counselor_profile fields (bio, specialization, is_accepting_patients).
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'nullable|string|max:255',
+            'picture' => 'nullable|string|max:500',
+            // Counselor specific fields
+            'bio' => 'nullable|string|max:1000',
+            'specialization' => 'nullable|string|max:255',
+            'is_accepting_patients' => 'nullable|in:true,false,1,0,TRUE,FALSE',
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $user = $request->user();
+
+        $result = $this->authService->updateProfile($user->id, $request->all());
+
+        $status = $result['success'] ? 200 : 400;
 
         return response()->json($result, $status);
     }
