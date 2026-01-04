@@ -7,10 +7,10 @@ import '../utils/logger.dart';
 
 class ApiService {
   // emulator
-  // static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://192.168.19.134:8000/api';
+  // static const String baseUrl = 'http://192.168.19.134:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
