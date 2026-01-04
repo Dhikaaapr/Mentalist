@@ -7,10 +7,10 @@ import '../utils/logger.dart';
 
 class ApiService {
   // emulator
-  // static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://10.141.31.43:8000/api';
+  // static const String baseUrl = 'http://192.168.19.134:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -289,139 +289,6 @@ class ApiService {
       return {
         'success': false,
         'message': 'Terjadi kesalahan saat login Google',
-        'error': 'unknown_error',
-      };
-    }
-  }
-
-  /// -------------------------------
-  /// FORGOT PASSWORD
-  /// -------------------------------
-  static Future<Map<String, dynamic>> forgotPassword(String email) async {
-    try {
-      AppLogger.info(
-        '📡 [USER] Forgot password → $baseUrl/auth/forgot-password',
-      );
-
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/auth/forgot-password'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: json.encode({'email': email}),
-          )
-          .timeout(
-            timeoutDuration,
-            onTimeout: () {
-              throw TimeoutException('Request timeout');
-            },
-          );
-
-      AppLogger.info('📡 [USER] Status: ${response.statusCode}');
-      AppLogger.debug('📬 [USER] Body: ${response.body}');
-
-      final data = json.decode(response.body);
-
-      if (data is! Map<String, dynamic>) {
-        return {
-          'success': false,
-          'message': 'Response tidak valid',
-          'error': 'invalid_response',
-        };
-      }
-
-      return data;
-    } on TimeoutException catch (e) {
-      AppLogger.error('[USER] Forgot password timeout: $e');
-      return {
-        'success': false,
-        'message': 'Koneksi timeout',
-        'error': 'timeout',
-      };
-    } on SocketException catch (e) {
-      AppLogger.error('[USER] Forgot password network error: $e');
-      return {
-        'success': false,
-        'message': 'Tidak dapat terhubung ke server',
-        'error': 'network_error',
-      };
-    } catch (e) {
-      AppLogger.error('[USER] Forgot password error: $e');
-      return {
-        'success': false,
-        'message': 'Terjadi kesalahan',
-        'error': 'unknown_error',
-      };
-    }
-  }
-
-  /// -------------------------------
-  /// RESET PASSWORD
-  /// -------------------------------
-  static Future<Map<String, dynamic>> resetPassword({
-    required String email,
-    required String token,
-    required String password,
-  }) async {
-    try {
-      AppLogger.info('📡 [USER] Reset password → $baseUrl/auth/reset-password');
-
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/auth/reset-password'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: json.encode({
-              'email': email,
-              'token': token,
-              'password': password,
-              'password_confirmation': password,
-            }),
-          )
-          .timeout(
-            timeoutDuration,
-            onTimeout: () {
-              throw TimeoutException('Request timeout');
-            },
-          );
-
-      AppLogger.info('📡 [USER] Status: ${response.statusCode}');
-      AppLogger.debug('📬 [USER] Body: ${response.body}');
-
-      final data = json.decode(response.body);
-
-      if (data is! Map<String, dynamic>) {
-        return {
-          'success': false,
-          'message': 'Response tidak valid',
-          'error': 'invalid_response',
-        };
-      }
-
-      return data;
-    } on TimeoutException catch (e) {
-      AppLogger.error('[USER] Reset password timeout: $e');
-      return {
-        'success': false,
-        'message': 'Koneksi timeout',
-        'error': 'timeout',
-      };
-    } on SocketException catch (e) {
-      AppLogger.error('[USER] Reset password network error: $e');
-      return {
-        'success': false,
-        'message': 'Tidak dapat terhubung ke server',
-        'error': 'network_error',
-      };
-    } catch (e) {
-      AppLogger.error('[USER] Reset password error: $e');
-      return {
-        'success': false,
-        'message': 'Terjadi kesalahan',
         'error': 'unknown_error',
       };
     }
