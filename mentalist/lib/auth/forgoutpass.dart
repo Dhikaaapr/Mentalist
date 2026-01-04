@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_page.dart';
+import '../services/api_service.dart';
 
 class ForgotPassPage extends StatefulWidget {
   const ForgotPassPage({super.key});
@@ -21,15 +22,30 @@ class _ForgotPassPageState extends State<ForgotPassPage> {
     }
 
     setState(() => loading = true);
-    await Future.delayed(const Duration(seconds: 1));
+
+    final result = await ApiService.forgotPassword(emailController.text.trim());
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Link reset dikirim ke ${emailController.text}")),
-    );
-
     setState(() => loading = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result['message'])));
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Gagal mengirim reset password'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -49,6 +65,7 @@ class _ForgotPassPageState extends State<ForgotPassPage> {
 
               TextField(
                 controller: emailController,
+                keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   hintText: "Email",
                   filled: true,
@@ -61,11 +78,21 @@ class _ForgotPassPageState extends State<ForgotPassPage> {
               ),
               const SizedBox(height: 20),
 
-              ElevatedButton(
-                onPressed: loading ? null : _sendLink,
-                child: loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Send Reset Link"),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: loading ? null : _sendLink,
+                  child: loading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text("Send Reset Link"),
+                ),
               ),
 
               TextButton(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'schedule_request_page.dart';
+import 'all_schedules_page.dart';
 
 class SchedulePage extends StatelessWidget {
   const SchedulePage({super.key});
@@ -8,146 +10,227 @@ class SchedulePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
 
-      /// ------------------ CUSTOM HEADER ------------------
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 30),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// Back + Title
+              /// ================= HEADER =================
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new, size: 22),
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Spacer(),
                   const Text(
                     "Schedule",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                   const Spacer(flex: 2),
                 ],
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              /// ------------------ CALENDAR ------------------
+              /// ================= SCHEDULE REQUEST =================
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 110, 16, 183),
+                  color: const Color(0xFF5A2FC8),
                   borderRadius: BorderRadius.circular(22),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "November 2025",
-                      style: TextStyle(
+                    /// Title + Badge
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Schedule Request",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Text(
+                            "2 New",
+                            style: TextStyle(
+                              color: Color(0xFF5A2FC8),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 14),
+
+                    /// Request Card
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              const CircleAvatar(
+                                radius: 22,
+                                backgroundColor: Color(0xFF5A2FC8),
+                                child: Icon(Icons.person, color: Colors.white),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      "Nathalia",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      "Nov 10, 2025 | 14:00 - 17:00",
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF5A2FC8),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  onPressed: () {},
+                                  child: const Text(
+                                    "Accept",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                      color: Color(0xFF5A2FC8),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  onPressed: () {},
+                                  child: const Text(
+                                    "Decline",
+                                    style: TextStyle(color: Color(0xFF5A2FC8)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
 
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 10),
 
-                    /// Calendar grid mockup
-                    GridView.count(
-                      crossAxisCount: 7,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      children: List.generate(35, (index) {
-                        final day = index - 2;
-                        bool isToday = day == 9;
-
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: isToday
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            day > 0 ? "$day" : "",
-                            style: TextStyle(
-                              color: isToday
-                                  ? const Color.fromARGB(255, 36, 13, 165)
-                                  : Colors.white,
-                              fontWeight: isToday
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ScheduleRequestPage(),
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        },
+                        child: const Text(
+                          "View All Requests",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 25),
+              const SizedBox(height: 28),
 
-              /// ------------------ UPCOMING SESSION ------------------
+              /// ================= UPCOMING SESSION =================
               const Text(
                 "Upcoming Session",
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
+              const SizedBox(height: 12),
 
-              const SizedBox(height: 10),
-
-              _sessionCard(
-                name: "Timothy",
-                time: "14:00 - 17:00",
-                buttonText: "Chat",
-                buttonColor: const Color.fromARGB(255, 36, 13, 165),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xffe8e8e8),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: _sessionCard(
+                  name: "Nathaniel",
+                  time: "14:00 - 17:00",
+                  buttonText: "Chat",
+                  buttonColor: const Color(0xFF5A2FC8),
+                ),
               ),
 
-              const SizedBox(height: 25),
+              const SizedBox(height: 28),
 
-              /// ------------------ TODAY'S SESSION ------------------
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Today's Sessions",
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                  ),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 36, 13, 165),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    onPressed: () {},
-                    child: const Text(
-                      "View Clients",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
+              /// ================= TODAY SESSIONS =================
+              const Text(
+                "Today's Sessions",
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
-
+              const SizedBox(height: 4),
               Text(
                 "November 9, 2025",
                 style: TextStyle(color: Colors.grey.shade600),
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
 
-              /// ---- Session List ----
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xffe8e8e8),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(22),
                 ),
                 child: Column(
                   children: [
@@ -167,9 +250,37 @@ class SchedulePage extends StatelessWidget {
                       name: "Timothy",
                       time: "14:00 - 17:00",
                       buttonText: "Start",
-                      buttonColor: const Color.fromARGB(255, 36, 13, 165),
+                      buttonColor: const Color(0xFF5A2FC8),
                     ),
                   ],
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              /// ================= VIEW ALL =================
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AllSchedulesPage(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5A2FC8),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  child: const Text(
+                    "View All Schedules",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
             ],
@@ -179,7 +290,7 @@ class SchedulePage extends StatelessWidget {
     );
   }
 
-  /// ------------------ CUSTOM CARD BUILDER ------------------
+  /// ================= SESSION CARD =================
   Widget _sessionCard({
     required String name,
     required String time,
@@ -187,22 +298,21 @@ class SchedulePage extends StatelessWidget {
     required Color buttonColor,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(255, 238, 238, 238),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
           const CircleAvatar(
             radius: 22,
-            backgroundColor: Color.fromARGB(255, 36, 13, 165),
+            backgroundColor: Color(0xFF5A2FC8),
             child: Icon(Icons.person, color: Colors.white),
           ),
           const SizedBox(width: 12),
 
-          /// Text Section
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,23 +321,20 @@ class SchedulePage extends StatelessWidget {
                   name,
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: 16,
+                    fontSize: 15,
                   ),
                 ),
-                Row(
-                  children: [
-                    const Icon(Icons.circle, size: 8, color: Colors.grey),
-                    const SizedBox(width: 4),
-                    Text(time, style: TextStyle(color: Colors.grey.shade700)),
-                  ],
+                const SizedBox(height: 2),
+                Text(
+                  time,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                 ),
               ],
             ),
           ),
 
-          /// Button
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: buttonColor,
               borderRadius: BorderRadius.circular(20),

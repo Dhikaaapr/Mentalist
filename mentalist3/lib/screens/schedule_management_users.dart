@@ -10,7 +10,6 @@ class ScheduleManagementUsers extends StatefulWidget {
 
 class _ScheduleManagementUsersState extends State<ScheduleManagementUsers> {
   List<String> names = ["Tami", "Angga", "Putri", "Dina", "Bella", "Zahra"];
-
   int approvedToday = 0;
 
   @override
@@ -40,14 +39,12 @@ class _ScheduleManagementUsersState extends State<ScheduleManagementUsers> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _statsRow(),
-
           const SizedBox(height: 20),
           const Text(
             "Schedule request",
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 15),
-
           Expanded(
             child: names.isEmpty
                 ? const Center(child: Text("No pending schedule"))
@@ -107,24 +104,22 @@ class _ScheduleManagementUsersState extends State<ScheduleManagementUsers> {
             child: Icon(Icons.person, color: Colors.white),
           ),
           const SizedBox(width: 14),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                const Text("Nov 5,2025", style: TextStyle(fontSize: 12)),
+                const Text("Nov 5, 2025", style: TextStyle(fontSize: 12)),
                 const Text("12.00 - 13.00", style: TextStyle(fontSize: 12)),
               ],
             ),
           ),
-
           _statusButton("Approve", Colors.green, () {
-            _showPopup(name, index);
+            _showConfirmApprove(name, index);
           }),
           const SizedBox(width: 5),
           _statusButton("Reject", Colors.red, () {
-            setState(() => names.removeAt(index));
+            _showConfirmReject(name, index);
           }),
         ],
       ),
@@ -148,7 +143,65 @@ class _ScheduleManagementUsersState extends State<ScheduleManagementUsers> {
     );
   }
 
-  // POPUP MODERN
+  // ================= KONFIRMASI APPROVE =================
+  void _showConfirmApprove(String name, int index) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Approve Schedule"),
+        content: Text("Are you sure you want to approve $name schedule?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showPopup(name, index);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text(
+              "Yes, Approve",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= KONFIRMASI REJECT =================
+  void _showConfirmReject(String name, int index) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Reject Schedule"),
+        content: Text("Are you sure you want to reject $name schedule?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showRejectPopup(name, index);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text(
+              "Yes, Reject",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ================= POPUP APPROVE =================
   void _showPopup(String name, int index) {
     showDialog(
       context: context,
@@ -162,27 +215,23 @@ class _ScheduleManagementUsersState extends State<ScheduleManagementUsers> {
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.15),
+                  color: Colors.green.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.check_circle,
-                  size: 45,
+                  size: 48,
                   color: Colors.green,
                 ),
               ),
-
               const SizedBox(height: 15),
-
               const Text(
                 "Approved!",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               const SizedBox(height: 10),
-
               Text("$name request has been approved."),
               const SizedBox(height: 20),
-
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
@@ -192,6 +241,50 @@ class _ScheduleManagementUsersState extends State<ScheduleManagementUsers> {
                   });
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                child: const Text("OK", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ================= POPUP REJECT =================
+  void _showRejectPopup(String name, int index) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(25),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.cancel, size: 48, color: Colors.red),
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                "Rejected",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(height: 10),
+              Text("$name request has been rejected."),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    names.removeAt(index);
+                  });
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text("OK", style: TextStyle(color: Colors.white)),
               ),
             ],

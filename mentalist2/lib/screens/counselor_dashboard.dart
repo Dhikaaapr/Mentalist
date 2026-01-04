@@ -165,7 +165,7 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const CounselorListPage(),
+                              builder: (_) => const SchedulePage(),
                             ),
                           );
                         },

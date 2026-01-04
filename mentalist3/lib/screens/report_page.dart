@@ -9,32 +9,57 @@ class ReportPage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back, color: Colors.black),
+        backgroundColor: const Color(0xFFE5E5E5),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          "Report & analysis",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 22),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
         child: Column(
           children: [
-            const SizedBox(height: 5),
-
-            const Text(
-              "Report & analysis",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            Row(
+              children: const [
+                _SummaryCard(
+                  title: "Total Users",
+                  value: "200",
+                  subtitle: "From Last Years",
+                ),
+                SizedBox(width: 12),
+                _SummaryCard(
+                  title: "Total Therapy Session",
+                  value: "200",
+                  subtitle: "From Last Years",
+                ),
+              ],
             ),
-
-            const SizedBox(height: 30),
-
-            _chartCard(title: "Total users", values: [35, 60, 90, 120, 150]),
-
-            const SizedBox(height: 28),
+            const SizedBox(height: 22),
 
             _chartCard(
-              title: "Therapy session",
-              values: [20, 50, 80, 110, 140],
+              title: "Total users",
+              subtitle: "200 Users",
+              values: [10, 25, 32, 45, 60],
+              months: ["Nov 3", "Dec 3", "Jan 3", "Feb 3", "...."],
+              maxValue: 60,
+            ),
+
+            const SizedBox(height: 22),
+
+            _chartCard(
+              title: "Therapy Session",
+              subtitle: "200 Session",
+              values: [20, 30, 42, 55, 70],
+              months: ["Nov 3", "Dec 3", "Jan 3", "Feb 3", "...."],
+              maxValue: 70,
             ),
           ],
         ),
@@ -42,58 +67,115 @@ class ReportPage extends StatelessWidget {
     );
   }
 
-  Widget _chartCard({required String title, required List<double> values}) {
+  Widget _chartCard({
+    required String title,
+    required String subtitle,
+    required List<double> values,
+    required List<String> months,
+    required double maxValue,
+  }) {
+    const double chartHeight = 150;
+    const double monthHeight = 26;
+    const int gridLines = 5;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFD9D9D9),
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFFE0E0E0),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF3F3D7D),
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 18),
 
+          /// ===== GRAPH AREA =====
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// Y AXIS (TINGGI = CHART SAJA)
+              SizedBox(
+                height: chartHeight,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: List.generate(gridLines + 1, (i) {
+                    final value = (maxValue / gridLines * (gridLines - i))
+                        .toInt();
+                    return Text(
+                      value.toString(),
+                      style: const TextStyle(fontSize: 10),
+                    );
+                  }),
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              /// BAR + GRID
+              Expanded(
+                child: Stack(
+                  children: [
+                    CustomPaint(
+                      size: Size(double.infinity, chartHeight),
+                      painter: GridPainter(gridLines: gridLines),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(values.length, (index) {
+                          final barHeight =
+                              (values[index] / maxValue) * chartHeight;
+                          return Container(
+                            width: 26,
+                            height: barHeight,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF3F3D7D),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          /// MONTH LABEL (TERPISAH)
           SizedBox(
-            height: 190,
-            width: double.infinity,
-            child: Stack(
-              children: [
-                /// === GARIS CHART ===
-                Positioned(
-                  left: 35,
-                  bottom: 20,
-                  child: CustomPaint(
-                    size: const Size(240, 160),
-                    painter: AxisPainter(),
-                  ),
-                ),
-
-                /// === BAR UNGU ===
-                Positioned(
-                  left: 55,
-                  bottom: 20,
-                  right: 20,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: values.map((height) {
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        width: 30,
-                        height: height,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6A1B9A),
-                          borderRadius: BorderRadius.circular(6),
+            height: monthHeight,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 34),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: months
+                    .map(
+                      (m) => Text(
+                        m,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.black54,
                         ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
           ),
         ],
@@ -102,39 +184,68 @@ class ReportPage extends StatelessWidget {
   }
 }
 
-/// === PAINTER UNTUK SUMBU CHART ===
-class AxisPainter extends CustomPainter {
+class _SummaryCard extends StatelessWidget {
+  final String title, value, subtitle;
+  const _SummaryCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF3F3D7D),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              subtitle,
+              style: const TextStyle(color: Colors.white70, fontSize: 10),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class GridPainter extends CustomPainter {
+  final int gridLines;
+  GridPainter({required this.gridLines});
+
   @override
   void paint(Canvas canvas, Size size) {
-    final axisPaint = Paint()
-      ..color = Colors.black
-      ..strokeWidth = 2.2;
+    final paint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.25)
+      ..strokeWidth = 1;
 
-    final tickPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.7)
-      ..strokeWidth = 1.4;
+    final gap = size.height / gridLines;
 
-    // ------- GARIS VERTIKAL -------
-    canvas.drawLine(Offset(0, 0), Offset(0, size.height), axisPaint);
-
-    // ------- GARIS HORIZONTAL -------
-    canvas.drawLine(
-      Offset(0, size.height),
-      Offset(size.width, size.height),
-      axisPaint,
-    );
-
-    // ------- TICK MARKS (garis kecil indikator) -------
-    const tickCount = 5;
-    double gap = size.height / (tickCount + 1);
-
-    for (int i = 1; i <= tickCount; i++) {
+    for (int i = 0; i <= gridLines; i++) {
       final y = size.height - gap * i;
-
-      canvas.drawLine(Offset(-8, y), Offset(8, y), tickPaint);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
     }
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

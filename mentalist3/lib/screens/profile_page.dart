@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'admin_bottom_nav.dart';
 
 class AdminProfilePage extends StatefulWidget {
   const AdminProfilePage({super.key});
@@ -30,12 +31,21 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back, color: Colors.black),
+
+        /// ⬅️ BACK TO DASHBOARD
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminBottomNav()),
+              (route) => false,
+            );
+          },
         ),
+
         title: const Text(
-          "Settings",
+          "Profile",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
         centerTitle: true,
@@ -46,7 +56,6 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
         child: Column(
           children: [
-            /// --- PROFILE HEADER ---
             const CircleAvatar(
               radius: 50,
               backgroundColor: Color(0xFFD8CFF0),
@@ -61,7 +70,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
             const Text("Admin", style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 25),
 
-            /// --- PERSONAL INFORMATION CARD ---
+            /// PERSONAL INFO
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -106,7 +115,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
 
             const SizedBox(height: 16),
 
-            /// --- EDIT BUTTON ---
+            /// EDIT BUTTON
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -139,7 +148,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
 
             const SizedBox(height: 25),
 
-            /// --- SYSTEM SETTINGS TITLE ---
+            /// SYSTEM SETTINGS
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -149,7 +158,6 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
             ),
             const SizedBox(height: 12),
 
-            /// --- SETTINGS MENU CARD ---
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -178,7 +186,6 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
     );
   }
 
-  /// --- PROFILE VALUE ITEM ---
   Widget _infoItem(
     IconData icon,
     TextEditingController controller, {
@@ -203,7 +210,6 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
     );
   }
 
-  /// --- SETTINGS TILE ---
   Widget _settingsItem(
     IconData icon,
     String text,

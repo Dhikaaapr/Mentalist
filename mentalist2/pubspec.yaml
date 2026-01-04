@@ -35,6 +35,11 @@ flutter:
   assets:
     - assets/Google.png
     - assets/logokonselor.svg
+    - assets/splash1.png
+    - assets/splash2.png
+    - assets/splash3.png
+    - assets/splash4.png
+    - assets/splash5.png
 
   fonts:
     - family: Poppins

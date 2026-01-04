@@ -1,4 +1,3 @@
-// notification_page.dart
 import 'package:flutter/material.dart';
 
 class NotificationPage extends StatelessWidget {
@@ -8,101 +7,204 @@ class NotificationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final notifications = [
       {
-        "title": "New schedule request",
-        "time": "2 min ago",
-        "message": "A user requested a counseling session.",
+        "title": "Approval Request by Dr.adi",
+        "subtitle": "for ratihan",
+        "time": "09:00 AM",
       },
       {
-        "title": "User registered",
-        "time": "10 min ago",
-        "message": "A new user account has been created.",
-      },
-      {
-        "title": "Counselor update",
-        "time": "1 hour ago",
-        "message": "Counselor profile Dr. Budi has been modified.",
+        "title": "Approval Request by Dr.adi",
+        "subtitle": "for Dr.Hadi",
+        "time": "02:00 AM",
       },
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Icon(Icons.arrow_back, color: Colors.black),
-        ),
-        title: const Text(
-          "Notifications",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-      ),
-
-      body: notifications.isEmpty
-          ? const Center(
-              child: Text(
-                "No notifications yet",
-                style: TextStyle(color: Colors.grey, fontSize: 16),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            /// ================= HEADER =================
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF2F2F2),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(28),
+                ),
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(15),
-              itemCount: notifications.length,
-              itemBuilder: (context, index) {
-                final notification = notifications[index];
+              child: const Center(
+                child: Text(
+                  "Notifications",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 22,
-                        backgroundColor: Color(0xFF6A1B9A),
-                        child: Icon(
-                          Icons.notifications_active,
-                          size: 22,
-                          color: Colors.white,
+            const SizedBox(height: 16),
+
+            /// ================= ADMIN CARD =================
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: const [
+                    CircleAvatar(
+                      radius: 22,
+                      backgroundColor: Color(0xFF3F3D7D),
+                      child: Icon(Icons.person, color: Colors.white),
+                    ),
+                    SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Sarah Lee",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              notification["title"]!,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
+                        Text(
+                          "Admin",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            /// ================= SEARCH =================
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F2F2),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.search, size: 18, color: Colors.grey),
+                    SizedBox(width: 8),
+                    Text(
+                      "Search Notifications",
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            /// ================= LIST NOTIFICATION =================
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: notifications.length,
+                itemBuilder: (context, index) {
+                  final item = notifications[index];
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF2F2F2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Color(0xFF3F3D7D),
+                          child: Icon(Icons.person, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item["title"]!,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              notification["message"]!,
-                              style: const TextStyle(color: Colors.black54),
+                              const SizedBox(height: 2),
+                              Text(
+                                item["subtitle"]!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text(
+                              "just Now",
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              notification["time"]!,
+                              item["time"]!,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: Colors.grey,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
+
+            /// ================= VIEW ALL BUTTON =================
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: SizedBox(
+                width: 140,
+                height: 40,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3F3D7D),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: () {},
+                  child: const Text(
+                    "View All",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth/counselor_login_page.dart'; // pastikan path benar
+import 'auth/onboarding_page.dart'; // ✅ PATH BENAR
 
 void main() {
   runApp(const MentalistApp());
@@ -17,7 +17,7 @@ class MentalistApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const CounselorLoginPage(), // 👈 ini halaman pertama
+      home: const OnboardingPage(), // ✅ CLASS ADA
     );
   }
 }
