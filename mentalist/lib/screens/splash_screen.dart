@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../auth/login_page.dart';
+import '../auth/onboarding_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,17 +12,17 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _goToLogin();
+    _goToOnboarding();
   }
 
-  Future<void> _goToLogin() async {
+  Future<void> _goToOnboarding() async {
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
+      MaterialPageRoute(builder: (_) => const OnboardingPage()),
     );
   }
 
@@ -35,10 +35,11 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset("assets/loadingmentalist.png", width: 250),
-            const SizedBox(height: 20),
-
             const SizedBox(height: 30),
-            const CircularProgressIndicator(strokeWidth: 2, color: Colors.blue),
+            const CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.white,
+            ),
           ],
         ),
       ),

@@ -105,6 +105,568 @@ class _CounselingSessionPageState extends State<CounselingSessionPage> {
     );
   }
 
+  void _showRescheduleBottomDialog(String name) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Center(
+                  child: Text(
+                    "Reschedule Session",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xff5565FF),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                /// DATE
+                const Text(
+                  "Date",
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 6),
+                _inputBox(
+                  icon: Icons.calendar_today,
+                  text: "Monday, 10 Nov 2025",
+                ),
+
+                const SizedBox(height: 12),
+
+                /// TIME
+                const Text(
+                  "Time",
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 6),
+                _inputBox(
+                  icon: Icons.access_time,
+                  text: "08 : 00   —   10 : 00",
+                ),
+
+                const SizedBox(height: 12),
+
+                /// REASON
+                const Text(
+                  "Reasons",
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 6),
+                _dropdownBox(),
+
+                const SizedBox(height: 20),
+
+                /// BUTTONS
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: const Text("Cancel"),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xff5565FF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showConfirmReschedulePopup(name);
+                        },
+                        child: const Text("Reschedule"),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showConfirmReschedulePopup(String name) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Confirm Rescheduling",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xff5565FF),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "You are about to reschedule this counseling session with $name.\n\nAre you sure you want to reschedule this session?",
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Back"),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xff5565FF),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showSuccessDialog(context);
+                      },
+
+                      child: const Text("Yes, Reschedule Session"),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCancelSessionDialog(String name) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(
+                child: Text(
+                  "Cancel Counseling Session",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xff5565FF),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              const Text(
+                "Name",
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 6),
+              _readonlyBox(name),
+
+              const SizedBox(height: 12),
+
+              const Text(
+                "Date & Time",
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 6),
+              _readonlyBox("Monday, Nov 17 (08:00 - 10:00)"),
+
+              const SizedBox(height: 12),
+
+              const Text(
+                "Reasons",
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 6),
+              _dropdownBox(),
+
+              const SizedBox(height: 12),
+
+              const Text(
+                "Notes to Client (optional)",
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 6),
+              _textArea(),
+
+              const SizedBox(height: 14),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xff5565FF)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          "Cancel",
+                          style: TextStyle(
+                            color: Color(0xff5565FF),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showConfirmCancelPopup(name);
+                        },
+                        child: const Text(
+                          "Confirm Cancellation",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showConfirmCancelPopup(String name) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Confirm Cancellation",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xff5565FF),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "Are you sure you want to cancel session with $name?\n\nThe client will be notified immediately.",
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: Colors.black87),
+              ),
+              const SizedBox(height: 24),
+
+              // 🔴 Primary Button
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _showCancelSuccessOptionDialog(name);
+                  },
+                  child: const Text(
+                    "Yes, Cancel Session",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // 🔵 Secondary Button
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xff5565FF)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Back",
+                    style: TextStyle(
+                      color: Color(0xff5565FF),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCancelSuccessOptionDialog(String name) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ✅ Success Icon
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: Colors.green,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, color: Colors.white, size: 36),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ✅ Main Text
+              Text(
+                "The session with $name has been cancelled successfully.",
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // ✅ Subtitle
+              const Text(
+                "Would you like to reschedule this session?",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+
+              const SizedBox(height: 24),
+
+              // ✅ Primary Button (Top)
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff5565FF),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _showRescheduleBottomDialog(name);
+                  },
+                  child: const Text(
+                    "Yes, Reschedule Session",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ✅ Secondary Button (Bottom)
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: const BorderSide(color: Color(0xff5565FF)),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "No, Keep it canceled",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xff5565FF),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _readonlyBox(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: Text(text)),
+          const Icon(Icons.lock, size: 16, color: Colors.grey),
+        ],
+      ),
+    );
+  }
+
+  Widget _textArea() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const TextField(
+        maxLines: 3,
+        decoration: InputDecoration(
+          hintText: "Write a message to client",
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: Colors.green,
+                  child: Icon(Icons.check, color: Colors.white, size: 36),
+                ),
+                SizedBox(height: 20),
+                Text(
+                  "The session with Nathalia has been rescheduled successfully.",
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _inputBox({required IconData icon, required String text}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Colors.grey),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text)),
+          const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+        ],
+      ),
+    );
+  }
+
+  Widget _dropdownBox() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: "Emergency",
+          items: const [
+            DropdownMenuItem(value: "Emergency", child: Text("Emergency")),
+            DropdownMenuItem(
+              value: "Schedule Conflict",
+              child: Text("Schedule Conflict"),
+            ),
+            DropdownMenuItem(
+              value: "Client Request",
+              child: Text("Client Request"),
+            ),
+            DropdownMenuItem(value: "Others", child: Text("Others")),
+          ],
+          onChanged: (_) {},
+        ),
+      ),
+    );
+  }
+
   Widget _sessionCard(Map data) {
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
@@ -184,8 +746,9 @@ class _CounselingSessionPageState extends State<CounselingSessionPage> {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onPressed: () {},
-                  child: const Text("Join Session"),
+                  onPressed: () => _showCancelSessionDialog(data["name"]),
+
+                  child: const Text("Cancel Session"),
                 ),
               ),
               const SizedBox(width: 12),
@@ -198,7 +761,8 @@ class _CounselingSessionPageState extends State<CounselingSessionPage> {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onPressed: () {},
+                  onPressed: () => _showRescheduleBottomDialog(data["name"]),
+
                   child: const Text(
                     "Reschedule",
                     style: TextStyle(color: Colors.black),

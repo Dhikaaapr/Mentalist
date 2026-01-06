@@ -37,6 +37,10 @@ flutter:
     - assets/Google.png
     - assets/logo.png
     - assets/loadingmentalist.png
+    - assets/splash1.png
+    - assets/splash2.png
+    - assets/splash3.png
+    - assets/splash4.png
 
   fonts:
     - family: Poppins
