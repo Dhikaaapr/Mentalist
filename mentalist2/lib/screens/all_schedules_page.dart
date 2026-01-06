@@ -339,10 +339,16 @@ class _AllSchedulesPageState extends State<AllSchedulesPage> {
                 const SizedBox(height: 14),
                 const Text("Reasons"),
                 const SizedBox(height: 6),
-                _dropdownBox(
-                  value: _selectedReason,
-                  items: _reasons,
-                  onChanged: (v) => setState(() => _selectedReason = v),
+                StatefulBuilder(
+                  builder: (context, setLocalState) {
+                    return _dropdownBox(
+                      value: _selectedReason,
+                      items: _reasons,
+                      onChanged: (v) {
+                        setLocalState(() => _selectedReason = v);
+                      },
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 14),
@@ -463,10 +469,16 @@ class _AllSchedulesPageState extends State<AllSchedulesPage> {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 6),
-                _dropdownBox(
-                  value: _selectedReason,
-                  items: _reasons,
-                  onChanged: (val) => setState(() => _selectedReason = val),
+                StatefulBuilder(
+                  builder: (context, setLocalState) {
+                    return _dropdownBox(
+                      value: _selectedReason,
+                      items: _reasons,
+                      onChanged: (val) {
+                        setLocalState(() => _selectedReason = val);
+                      },
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 26),

@@ -6,11 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logger.dart';
 
 class CounselorApiService {
-  // emulator
-  static const String baseUrl = 'http://10.141.31.43:8000/api';
+  // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  // static const String baseUrl = 'http://192.168.19.134:8000/api';
+  static const String baseUrl = 'http://192.168.1.15:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -22,11 +21,11 @@ class CounselorApiService {
     String password,
   ) async {
     try {
-      AppLogger.info('📡 [COUNSELOR] Request → $baseUrl/auth/login');
+      AppLogger.info('📡 [COUNSELOR] Request → $baseUrl/auth/counselor/login');
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/auth/login'),
+            Uri.parse('$baseUrl/auth/counselor/login'),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -55,14 +54,7 @@ class CounselorApiService {
         if (data['token'] != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('accessToken', data['token']);
-
-          // Determine role from response or default to counselor
-          String userRole = 'counselor';
-          if (data['user'] != null && data['user']['role'] != null) {
-            userRole = data['user']['role']['name'] ?? 'counselor';
-          }
-          await prefs.setString('role', userRole);
-
+          await prefs.setString('role', 'counselor');
           AppLogger.info('[COUNSELOR] Token disimpan');
         }
 
@@ -81,7 +73,7 @@ class CounselorApiService {
       if (response.statusCode == 403) {
         return {
           'success': false,
-          'message': 'Akun tidak aktif',
+          'message': 'Akun konselor tidak aktif',
           'error': 'forbidden',
         };
       }
@@ -143,13 +135,7 @@ class CounselorApiService {
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('accessToken', data['token']);
-
-        // Determine role from response - Google login returns user object with role
-        String userRole = 'user'; // default role
-        if (data['user'] != null && data['user']['role'] != null) {
-          userRole = data['user']['role']['name'] ?? 'user';
-        }
-        await prefs.setString('role', userRole);
+        await prefs.setString('role', 'counselor');
 
         data['success'] = true;
         return data;
@@ -158,7 +144,7 @@ class CounselorApiService {
       if (response.statusCode == 401) {
         return {
           'success': false,
-          'message': 'Akun Google tidak terdaftar atau tidak valid',
+          'message': 'Akun Google tidak terdaftar sebagai konselor',
           'error': 'unauthorized',
         };
       }
@@ -179,7 +165,7 @@ class CounselorApiService {
   }
 
   /// -------------------------------
-  /// GET AUTHENTICATED USER PROFILE
+  /// GET PROFILE KONSELOR
   /// -------------------------------
   static Future<Map<String, dynamic>?> getProfile() async {
     try {
@@ -194,9 +180,8 @@ class CounselorApiService {
         };
       }
 
-      // Using Laravel Sanctum's standard endpoint for getting authenticated user
       final response = await http.get(
-        Uri.parse('$baseUrl/user'),
+        Uri.parse('$baseUrl/counselor'),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -207,7 +192,7 @@ class CounselorApiService {
         return {'success': true, 'data': json.decode(response.body)};
       }
 
-      return {'success': false, 'message': 'Gagal mengambil profil pengguna'};
+      return {'success': false, 'message': 'Gagal mengambil profil konselor'};
     } catch (e) {
       AppLogger.error('[COUNSELOR] Get profile error: $e');
       return {'success': false, 'message': 'Terjadi kesalahan'};
