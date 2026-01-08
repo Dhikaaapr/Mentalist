@@ -6,10 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logger.dart';
 
 class CounselorApiService {
-  // static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://192.168.1.15:8000/api';
+  // static const String baseUrl = 'http://192.168.1.15:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -21,11 +21,11 @@ class CounselorApiService {
     String password,
   ) async {
     try {
-      AppLogger.info('📡 [COUNSELOR] Request → $baseUrl/auth/counselor/login');
+      AppLogger.info('📡 [COUNSELOR] Request → $baseUrl/auth/login');
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/auth/counselor/login'),
+            Uri.parse('$baseUrl/auth/login'),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
@@ -161,41 +161,6 @@ class CounselorApiService {
         'message': 'Terjadi kesalahan saat login Google',
         'error': 'unknown_error',
       };
-    }
-  }
-
-  /// -------------------------------
-  /// GET PROFILE KONSELOR
-  /// -------------------------------
-  static Future<Map<String, dynamic>?> getProfile() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('accessToken') ?? '';
-
-      if (token.isEmpty) {
-        return {
-          'success': false,
-          'message': 'Belum login',
-          'error': 'no_token',
-        };
-      }
-
-      final response = await http.get(
-        Uri.parse('$baseUrl/counselor'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        return {'success': true, 'data': json.decode(response.body)};
-      }
-
-      return {'success': false, 'message': 'Gagal mengambil profil konselor'};
-    } catch (e) {
-      AppLogger.error('[COUNSELOR] Get profile error: $e');
-      return {'success': false, 'message': 'Terjadi kesalahan'};
     }
   }
 }
