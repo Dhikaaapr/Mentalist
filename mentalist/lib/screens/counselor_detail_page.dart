@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../services/booking_api_service.dart';
 
 class CounselorDetailPage extends StatefulWidget {
-  final Map data;
+  final Map<String, dynamic> data;
 
   const CounselorDetailPage({super.key, required this.data});
 
@@ -14,19 +15,88 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   String? _selectedTime;
+  bool _isBooking = false;
 
   final List<String> _timeSlots = [
-    "09:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "02:00 PM",
-    "03:00 PM",
-    "04:00 PM",
+    "09:00",
+    "10:00",
+    "11:00",
+    "14:00",
+    "15:00",
+    "16:00",
   ];
+
+  Future<void> _bookConsultation() async {
+    if (_selectedDay == null || _selectedTime == null) return;
+
+    setState(() => _isBooking = true);
+
+    // Parse time and combine with date
+    final timeParts = _selectedTime!.split(':');
+    final hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+
+    final scheduledAt = DateTime(
+      _selectedDay!.year,
+      _selectedDay!.month,
+      _selectedDay!.day,
+      hour,
+      minute,
+    );
+
+    final result = await BookingApiService.createBooking(
+      counselorId: widget.data['id'],
+      scheduledAt: scheduledAt,
+    );
+
+    setState(() => _isBooking = false);
+
+    if (!mounted) return;
+
+    if (result != null && result['success'] == true) {
+      // Show success dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green.shade600, size: 28),
+              const SizedBox(width: 10),
+              const Text("Berhasil!"),
+            ],
+          ),
+          content: Text(
+            "Booking berhasil! Konsultasi dengan ${widget.data['name']} "
+            "pada ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year} "
+            "jam $_selectedTime.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Go back to counselor list
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result?['message'] ?? 'Gagal membuat booking'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = const Color.fromARGB(255, 33, 33, 228);
+    final primaryColor = const Color(0xff6b38f0);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -44,7 +114,7 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.data['name'],
+          widget.data['name'] ?? 'Counselor',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -62,51 +132,70 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
             children: [
               CircleAvatar(
                 radius: 36,
-                backgroundColor: Colors.grey.shade300,
-                child: Text(
-                  widget.data['name'][0],
-                  style: const TextStyle(color: Colors.white, fontSize: 26),
-                ),
+                backgroundColor: primaryColor,
+                backgroundImage: widget.data['picture'] != null
+                    ? NetworkImage(widget.data['picture'])
+                    : null,
+                child: widget.data['picture'] == null
+                    ? Text(
+                        (widget.data['name'] ?? 'C')[0].toUpperCase(),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 26),
+                      )
+                    : null,
               ),
               const SizedBox(width: 16),
-              Row(
-                children: [
-                  Icon(
-                    Icons.circle,
-                    size: 10,
-                    color: widget.data['online'] ? Colors.green : Colors.grey,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    widget.data['online'] ? "Online" : "Offline",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: widget.data['online'] ? Colors.green : Colors.grey,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.data['name'] ?? 'Unknown',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.data['specialization'] ?? 'Konselor',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
 
           const SizedBox(height: 25),
 
-          /// ================= SPECIALIZATION =================
-          const Text(
-            "Specialization",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            widget.data['spec'] ?? "Unknown",
-            style: const TextStyle(fontSize: 15),
-          ),
-
-          const SizedBox(height: 30),
+          /// ================= BIO =================
+          if (widget.data['bio'] != null && widget.data['bio'].isNotEmpty) ...[
+            const Text(
+              "Tentang",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                widget.data['bio'],
+                style: const TextStyle(fontSize: 14, height: 1.5),
+              ),
+            ),
+            const SizedBox(height: 25),
+          ],
 
           /// ================= CALENDAR =================
           const Text(
-            "Select Date",
+            "Pilih Tanggal",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
@@ -114,7 +203,7 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
           TableCalendar(
             focusedDay: _focusedDay,
             firstDay: DateTime.now(),
-            lastDay: DateTime.utc(2030, 12, 31),
+            lastDay: DateTime.now().add(const Duration(days: 60)),
 
             calendarFormat: CalendarFormat.month,
             availableCalendarFormats: const {CalendarFormat.month: 'Month'},
@@ -138,7 +227,7 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
 
             calendarStyle: const CalendarStyle(
               outsideDaysVisible: false,
-              isTodayHighlighted: false, // 🔥 PENTING
+              isTodayHighlighted: false,
             ),
 
             /// ================= CONTROL CELL RENDER =================
@@ -156,7 +245,7 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
                   margin: const EdgeInsets.all(6),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 38, 51, 239),
+                    color: primaryColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -175,7 +264,7 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
 
           /// ================= TIME SLOTS =================
           const Text(
-            "Select Time",
+            "Pilih Waktu",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
@@ -185,8 +274,8 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _timeSlots.length,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 3,
+              crossAxisCount: 3,
+              childAspectRatio: 2.5,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
@@ -225,19 +314,11 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: (_selectedDay == null || _selectedTime == null)
+                onPressed: (_selectedDay == null ||
+                        _selectedTime == null ||
+                        _isBooking)
                     ? null
-                    : () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              "Session booked with ${widget.data['name']} "
-                              "on ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year} "
-                              "at $_selectedTime",
-                            ),
-                          ),
-                        );
-                      },
+                    : _bookConsultation,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   disabledBackgroundColor: Colors.grey.shade300,
@@ -246,10 +327,19 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text(
-                  "Book Consultation",
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
+                child: _isBooking
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "Book Consultation",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
               ),
             ),
           ),
@@ -284,9 +374,8 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
         '${day.day}',
         style: TextStyle(
           color: isSelected ? Colors.white : Colors.black,
-          fontWeight: isSelected || isToday
-              ? FontWeight.w600
-              : FontWeight.normal,
+          fontWeight:
+              isSelected || isToday ? FontWeight.w600 : FontWeight.normal,
         ),
       ),
     );

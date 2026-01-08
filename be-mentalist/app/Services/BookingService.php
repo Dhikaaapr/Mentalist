@@ -225,9 +225,9 @@ class BookingService
     }
 
     /**
-     * Reschedule booking (by counselor).
+     * Reschedule booking (by user or counselor).
      */
-    public function rescheduleBooking(string $counselorId, string $bookingId, string $newSchedule): array
+    public function rescheduleBooking(string $userId, string $bookingId, string $newSchedule): array
     {
         $booking = Booking::find($bookingId);
 
@@ -238,7 +238,8 @@ class BookingService
             ];
         }
 
-        if ($booking->counselor_id !== $counselorId) {
+        // Allow both user and counselor to reschedule
+        if ($booking->user_id !== $userId && $booking->counselor_id !== $userId) {
             return [
                 'success' => false,
                 'message' => 'Anda tidak memiliki akses ke booking ini',

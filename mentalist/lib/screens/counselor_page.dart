@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'counselor_detail_page.dart';
+import '../services/counselor_api_service.dart';
 
 class CounselorPage extends StatefulWidget {
   const CounselorPage({super.key});
@@ -11,48 +12,59 @@ class CounselorPage extends StatefulWidget {
 class _CounselorPageState extends State<CounselorPage> {
   final TextEditingController searchController = TextEditingController();
 
-  final List<Map<String, dynamic>> counselors = [
-    {'name': 'Dr. Emily Chen', 'spec': 'Clinical Psychologist', 'online': true},
-    {
-      'name': 'Dr. Michael Roberts',
-      'spec': 'Mental Health Specialist',
-      'online': true,
-    },
-    {
-      'name': 'Dr. Sarah Williams',
-      'spec': 'Family & Youth Counselor',
-      'online': false,
-    },
-    {
-      'name': 'Dr. James Anderson',
-      'spec': 'Anxiety & Trauma Therapist',
-      'online': true,
-    },
-    {
-      'name': 'Dr. Lisa Martinez',
-      'spec': 'Relationship Therapist',
-      'online': false,
-    },
-    {
-      'name': 'Dr. David Thompson',
-      'spec': 'PTSD / Stress Specialist',
-      'online': true,
-    },
-  ];
-
+  bool isLoading = true;
+  String? errorMessage;
+  List<Map<String, dynamic>> counselors = [];
   List<Map<String, dynamic>> filteredList = [];
 
   @override
   void initState() {
     super.initState();
-    filteredList = counselors;
+    _loadCounselors();
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCounselors() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    final result = await CounselorApiService.getAvailableCounselors();
+
+    if (result != null && result['success'] == true) {
+      final data = result['data'] as List;
+      setState(() {
+        counselors = data.map((e) => Map<String, dynamic>.from(e)).toList();
+        filteredList = counselors;
+      });
+    } else {
+      setState(() {
+        errorMessage = result?['message'] ?? 'Gagal memuat daftar konselor';
+      });
+    }
+
+    setState(() => isLoading = false);
   }
 
   void filterSearch(String query) {
     setState(() {
-      filteredList = counselors
-          .where((c) => c['name'].toLowerCase().contains(query.toLowerCase()))
-          .toList();
+      if (query.isEmpty) {
+        filteredList = counselors;
+      } else {
+        filteredList = counselors
+            .where((c) =>
+                (c['name'] ?? '').toLowerCase().contains(query.toLowerCase()) ||
+                (c['specialization'] ?? '')
+                    .toLowerCase()
+                    .contains(query.toLowerCase()))
+            .toList();
+      }
     });
   }
 
@@ -79,6 +91,12 @@ class _CounselorPageState extends State<CounselorPage> {
             color: Colors.black,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black87),
+            onPressed: _loadCounselors,
+          ),
+        ],
       ),
 
       body: Padding(
@@ -106,102 +124,150 @@ class _CounselorPageState extends State<CounselorPage> {
 
             /// 📍 LIST
             Expanded(
-              child: ListView.builder(
-                itemCount: filteredList.length,
-                itemBuilder: (_, i) {
-                  final c = filteredList[i];
-
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CounselorDetailPage(data: c),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Row(
-                        children: [
-                          /// 👤 Avatar
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Colors.grey.shade300,
-                            child: Text(
-                              c['name'][0],
-                              style: const TextStyle(
-                                fontSize: 22,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(width: 18),
-
-                          /// 📌 Detail
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  c['name'],
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.circle,
-                                      size: 10,
-                                      color: c['online']
-                                          ? Colors.green
-                                          : Colors.grey,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      c['online'] ? "Online" : "Offline",
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: c['online']
-                                            ? Colors.green
-                                            : Colors.grey,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          /// Placeholder trailing element
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(6),
-                              color: Colors.grey.shade200,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : errorMessage != null
+                      ? _buildErrorState()
+                      : filteredList.isEmpty
+                          ? _buildEmptyState()
+                          : _buildCounselorList(),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          Text(
+            errorMessage!,
+            style: TextStyle(color: Colors.grey.shade600),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: _loadCounselors,
+            icon: const Icon(Icons.refresh),
+            label: const Text("Coba Lagi"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xff6b38f0),
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.person_search, size: 64, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          Text(
+            searchController.text.isNotEmpty
+                ? "Tidak ada konselor yang cocok"
+                : "Belum ada konselor tersedia",
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCounselorList() {
+    return RefreshIndicator(
+      onRefresh: _loadCounselors,
+      child: ListView.builder(
+        itemCount: filteredList.length,
+        itemBuilder: (_, i) {
+          final c = filteredList[i];
+
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CounselorDetailPage(data: c),
+                ),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Row(
+                children: [
+                  /// 👤 Avatar
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: const Color(0xff6b38f0),
+                    backgroundImage: c['picture'] != null
+                        ? NetworkImage(c['picture'])
+                        : null,
+                    child: c['picture'] == null
+                        ? Text(
+                            (c['name'] ?? 'C')[0].toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 22,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  ),
+
+                  const SizedBox(width: 18),
+
+                  /// 📌 Detail
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          c['name'] ?? 'Unknown',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          c['specialization'] ?? 'Konselor',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  /// Arrow icon
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.grey.shade400,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

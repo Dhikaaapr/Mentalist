@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'schedule_page.dart';
 import 'profile_page.dart';
 import 'counselor_list_page.dart';
+import 'history_page.dart';
 
 class CounselorDashboardPage extends StatefulWidget {
   final String counselorName;
@@ -223,7 +224,7 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
           children: [
             _navItem(index: 0, icon: Icons.home),
             _navItem(index: 1, icon: Icons.calendar_month),
-            _navItem(index: 2, icon: Icons.chat_bubble_outline),
+            _navItem(index: 2, icon: Icons.history),
           ],
         ),
       ),
@@ -243,6 +244,11 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const SchedulePage()),
+          );
+        } else if (index == 2) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const HistoryPage()),
           );
         }
       },
