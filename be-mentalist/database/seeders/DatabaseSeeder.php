@@ -31,7 +31,6 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Admin User',
                 'role_id' => $adminRole->id,
                 'password' => 'password123',
-                'id' => \Illuminate\Support\Str::uuid(),
             ]
         );
 
@@ -42,7 +41,6 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Konselor User',
                 'role_id' => $konselorRole->id,
                 'password' => 'password123',
-                'id' => \Illuminate\Support\Str::uuid(),
             ]
         );
 
@@ -64,7 +62,6 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Test User',
                 'role_id' => $userRole->id,
                 'password' => 'password123',
-                'id' => \Illuminate\Support\Str::uuid(),
             ]
         );
 
@@ -72,7 +69,6 @@ class DatabaseSeeder extends Seeder
         $googleKonselor = User::updateOrCreate(
             ['email' => 'andhika.saputra@students.paramadina.ac.id'],
             [
-                'id' => \Illuminate\Support\Str::uuid(),
                 'name' => 'Andhika Presha Saputra',
                 'picture' => 'https://via.placeholder.com/200x200.png/007755?text=AS',
                 'role_id' => $konselorRole->id,
@@ -92,5 +88,41 @@ class DatabaseSeeder extends Seeder
                 'specialization' => 'CBT & Mindfulness',
             ]
         );
+
+        // Create Dummy Bookings for Reports
+        $users = User::whereHas('role', function($q) { $q->where('name', 'user'); })->get();
+        $counselors = User::whereHas('role', function($q) { $q->where('name', 'konselor'); })->get();
+
+        if ($users->isNotEmpty() && $counselors->isNotEmpty()) {
+            foreach($counselors as $index => $counselor) {
+                // Create 3-5 bookings for each counselor in the last 30 days
+                for ($i = 1; $i <= (3 + $index); $i++) {
+                    \App\Models\Booking::create([
+                        'user_id' => $users->random()->id,
+                        'counselor_id' => $counselor->id,
+                        'scheduled_at' => now()->subDays(rand(1, 25)),
+                        'status' => 'confirmed',
+                        'notes' => 'Sesi terapi dummy untuk laporan.',
+                    ]);
+                }
+            }
+        }
+
+        // Create Dummy Schedules & Notifications
+        $admin = User::whereHas('role', function($q) { $q->where('name', 'admin'); })->first();
+        if ($admin && $counselors->isNotEmpty()) {
+            foreach($counselors as $counselor) {
+                $schedule = \App\Models\CounselorSchedule::create([
+                    'counselor_id' => $counselor->id,
+                    'scheduled_date' => now()->addDays(rand(1, 5))->format('Y-m-d'),
+                    'start_time' => '09:00:00',
+                    'end_time' => '11:00:00',
+                    'status' => 'pending',
+                ]);
+
+                // Manually trigger notification for admin
+                $admin->notify(new \App\Notifications\CounselorScheduleSubmitted($schedule));
+            }
+        }
     }
 }

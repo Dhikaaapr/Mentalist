@@ -62,4 +62,43 @@ class AdminController extends Controller
 
         return response()->json($result, $status);
     }
+
+    /**
+     * Get report statistics
+     */
+    public function getReportStats(Request $request): JsonResponse
+    {
+        $result = $this->adminService->getReportStats();
+
+        $status = $result['success'] ? 200 : 400;
+
+        return response()->json($result, $status);
+    }
+
+    /**
+     * Get admin notifications
+     */
+    public function getNotifications(Request $request): JsonResponse
+    {
+        $notifications = $request->user()->notifications;
+
+        return response()->json([
+            'success' => true,
+            'data' => $notifications,
+        ]);
+    }
+
+    /**
+     * Mark notification as read
+     */
+    public function markAsRead(Request $request, string $id): JsonResponse
+    {
+        $notification = $request->user()->notifications()->findOrFail($id);
+        $notification->markAsRead();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Notification marked as read',
+        ]);
+    }
 }

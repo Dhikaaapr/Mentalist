@@ -1,23 +1,96 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../services/admin_api_services.dart';
+import '../utils/logger.dart';
+import 'schedule_approval_counselors.dart';
 
-class NotificationPage extends StatelessWidget {
+class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final notifications = [
-      {
-        "title": "Approval Request by Dr.adi",
-        "subtitle": "for ratihan",
-        "time": "09:00 AM",
-      },
-      {
-        "title": "Approval Request by Dr.adi",
-        "subtitle": "for Dr.Hadi",
-        "time": "02:00 AM",
-      },
-    ];
+  State<NotificationPage> createState() => _NotificationPageState();
+}
 
+class _NotificationPageState extends State<NotificationPage> {
+  bool isLoading = true;
+  List<dynamic> notifications = [];
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    if (!mounted) return;
+    
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final result = await AdminApiService.getNotifications();
+      
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        setState(() {
+          notifications = result['data'] ?? [];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = result['message'] ?? 'Gagal memuat notifikasi';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      AppLogger.error('[NOTIFICATION_PAGE] Error: $e');
+      if (mounted) {
+        setState(() {
+          errorMessage = 'Terjadi kesalahan jaringan';
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _markAsRead(String id, int index) async {
+    final result = await AdminApiService.markNotificationAsRead(id);
+    if (result['success'] == true) {
+      setState(() {
+        notifications.removeAt(index);
+      });
+    }
+  }
+
+  String _formatTime(String? timeStr) {
+    if (timeStr == null) return "Unknown";
+    try {
+      final date = DateTime.parse(timeStr);
+      return DateFormat('hh:mm a').format(date);
+    } catch (e) {
+      return timeStr;
+    }
+  }
+
+  String _getTimeAgo(String? timeStr) {
+    if (timeStr == null) return "";
+    try {
+      final date = DateTime.parse(timeStr);
+      final diff = DateTime.now().difference(date);
+      if (diff.inMinutes < 60) return "${diff.inMinutes}m ago";
+      if (diff.inHours < 24) return "${diff.inHours}h ago";
+      return "${diff.inDays}d ago";
+    } catch (e) {
+      return "just now";
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -28,10 +101,8 @@ class NotificationPage extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 18),
               decoration: const BoxDecoration(
-                color: Color(0xFFF2F2F2),
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(28),
-                ),
+                color: Color(0xFFE5E5E5),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
               ),
               child: const Center(
                 child: Text(
@@ -43,165 +114,130 @@ class NotificationPage extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            /// ================= ADMIN CARD =================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF2F2F2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: const [
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: Color(0xFF3F3D7D),
-                      child: Icon(Icons.person, color: Colors.white),
-                    ),
-                    SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Sarah Lee",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          "Admin",
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            /// ================= SEARCH =================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                height: 40,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF2F2F2),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.search, size: 18, color: Colors.grey),
-                    SizedBox(width: 8),
-                    Text(
-                      "Search Notifications",
-                      style: TextStyle(color: Colors.grey, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
             /// ================= LIST NOTIFICATION =================
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: notifications.length,
-                itemBuilder: (context, index) {
-                  final item = notifications[index];
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF2F2F2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        const CircleAvatar(
-                          radius: 22,
-                          backgroundColor: Color(0xFF3F3D7D),
-                          child: Icon(Icons.person, color: Colors.white),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : errorMessage != null
+                      ? Center(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                item["title"]!,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                item["subtitle"]!,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
-                                ),
+                              Text(errorMessage!),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: _loadNotifications,
+                                child: const Text('Reload'),
                               ),
                             ],
                           ),
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            const Text(
-                              "just Now",
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey,
+                        )
+                      : notifications.isEmpty
+                          ? const Center(
+                              child: Text(
+                                "No new notifications",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _loadNotifications,
+                              child: ListView.builder(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                itemCount: notifications.length,
+                                itemBuilder: (context, index) {
+                                  final item = notifications[index];
+                                  final data = item['data'] ?? {};
+                                  final isUnread = item['read_at'] == null;
+
+                                  return Dismissible(
+                                    key: Key(item['id']),
+                                    direction: DismissDirection.endToStart,
+                                    background: Container(
+                                      alignment: Alignment.centerRight,
+                                      padding: const EdgeInsets.only(right: 20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade400,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: const Icon(Icons.delete, color: Colors.white),
+                                    ),
+                                    onDismissed: (direction) {
+                                      _markAsRead(item['id'], index);
+                                    },
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (data['type'] == 'approval_request') {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => const ScheduleApprovalCounselors(),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: Container(
+                                        margin: const EdgeInsets.only(bottom: 12),
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          color: isUnread ? const Color(0xFFF3E5F5) : const Color(0xFFF2F2F2),
+                                          borderRadius: BorderRadius.circular(20),
+                                          border: isUnread ? Border.all(color: const Color(0xFF3F3D7D).withValues(alpha: 0.3)) : null,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 22,
+                                              backgroundColor: isUnread ? const Color(0xFF3F3D7D) : Colors.grey,
+                                              child: const Icon(Icons.notifications_active, color: Colors.white, size: 20),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    data['title'] ?? "Notification",
+                                                    style: TextStyle(
+                                                      fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
+                                                      fontSize: 13,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    data['subtitle'] ?? "",
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.black54,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.end,
+                                              children: [
+                                                Text(
+                                                  _getTimeAgo(item['created_at']),
+                                                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Text(
+                                                  _formatTime(item['created_at']),
+                                                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              item["time"]!,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
             ),
 
-            /// ================= VIEW ALL BUTTON =================
-            Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: SizedBox(
-                width: 140,
-                height: 40,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3F3D7D),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: () {},
-                  child: const Text(
-                    "View All",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-            ),
+            const SizedBox(height: 10),
           ],
         ),
       ),

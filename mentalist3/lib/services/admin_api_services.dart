@@ -535,4 +535,208 @@ class AdminApiService {
       };
     }
   }
+
+  /// -------------------------------
+  /// GET REPORT STATS
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getReportStats() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
+      }
+
+      AppLogger.info('📡 [ADMIN] Get report stats → $baseUrl/admin/reports/stats');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/reports/stats'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(
+            timeoutDuration,
+            onTimeout: () {
+              throw TimeoutException('Request timeout');
+            },
+          );
+
+      AppLogger.info('📡 [ADMIN] Status: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+
+      return {
+        'success': false,
+        'message': 'Gagal mengambil data laporan',
+        'error': 'server_error',
+      };
+    } catch (e) {
+      AppLogger.error('[ADMIN] Error report stats: $e');
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan jaringan',
+        'error': 'unknown_error',
+      };
+    }
+  }
+
+  /// -------------------------------
+  /// GET NOTIFICATIONS
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
+      }
+
+      AppLogger.info('📡 [ADMIN] Get notifications → $baseUrl/admin/notifications');
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/notifications'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      AppLogger.info('📡 [ADMIN] Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+
+      return {
+        'success': false,
+        'message': 'Gagal mengambil notifikasi',
+      };
+    } catch (e) {
+      AppLogger.error('[ADMIN] Error notifications: $e');
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan jaringan',
+      };
+    }
+  }
+
+  /// -------------------------------
+  /// MARK NOTIFICATION AS READ
+  /// -------------------------------
+  static Future<Map<String, dynamic>> markNotificationAsRead(String notificationId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      AppLogger.info('📡 [ADMIN] Mark read → $baseUrl/admin/notifications/$notificationId/read');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/admin/notifications/$notificationId/read'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+
+      return {'success': false, 'message': 'Gagal update status'};
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
+
+  /// -------------------------------
+  /// GET PENDING SCHEDULES
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getPendingSchedules() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/schedules/pending'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+      return {'success': false, 'message': 'Gagal mengambil data'};
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
+
+  /// -------------------------------
+  /// APPROVE SCHEDULE
+  /// -------------------------------
+  static Future<Map<String, dynamic>> approveSchedule(String id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/admin/schedules/$id/approve'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+      return {'success': false, 'message': 'Gagal approve'};
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
+
+  /// -------------------------------
+  /// REJECT SCHEDULE
+  /// -------------------------------
+  static Future<Map<String, dynamic>> rejectSchedule(String id, String reason) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/admin/schedules/$id/reject'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'admin_notes': reason}),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+      return {'success': false, 'message': 'Gagal reject'};
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'approval_doctor_page.dart';
+import '../services/admin_api_services.dart';
+import '../utils/logger.dart';
 
 class ScheduleApprovalCounselors extends StatefulWidget {
   const ScheduleApprovalCounselors({super.key});
@@ -11,25 +13,48 @@ class ScheduleApprovalCounselors extends StatefulWidget {
 
 class _ScheduleApprovalCounselorsState
     extends State<ScheduleApprovalCounselors> {
-  /// DATA LIST (MUTABLE → BISA DIHAPUS SETELAH APPROVE)
-  final List<Map<String, String>> schedules = [
-    {"name": "Dr. Adi", "time": "14.00 - 17.00", "date": "Monday, Nov 3, 2025"},
-    {
-      "name": "Dr. Rudi",
-      "time": "18.00 - 20.00",
-      "date": "Monday, Nov 3, 2025",
-    },
-    {
-      "name": "Dr. Budi",
-      "time": "08.00 - 10.00",
-      "date": "Monday, Nov 3, 2025",
-    },
-    {
-      "name": "Dr. Gina",
-      "time": "11.00 - 13.00",
-      "date": "Monday, Nov 3, 2025",
-    },
-  ];
+  bool isLoading = true;
+  List<dynamic> schedules = [];
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSchedules();
+  }
+
+  Future<void> _loadSchedules() async {
+    if (!mounted) return;
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final result = await AdminApiService.getPendingSchedules();
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        setState(() {
+          schedules = result['data'] ?? [];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = result['message'] ?? 'Gagal memuat data';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      AppLogger.error('[SCHEDULE_APPROVAL] Error: $e');
+      if (mounted) {
+        setState(() {
+          errorMessage = 'Kesalahan jaringan';
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +69,7 @@ class _ScheduleApprovalCounselorsState
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "Schedule Approval Counselors",
+          "Schedule Approval",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
@@ -53,62 +78,70 @@ class _ScheduleApprovalCounselorsState
         ),
       ),
 
-      body: schedules.isEmpty
-          ? const Center(
-              child: Text(
-                "No approval request",
-                style: TextStyle(color: Colors.grey),
-              ),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-              children: [
-                const Text(
-                  "TODAY",
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : schedules.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "No approval request",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _loadSchedules,
+                        child: const Text('Refresh'),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  "Monday, Nov 3",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadSchedules,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+                    children: [
+                      const Text(
+                        "PENDING REQUESTS",
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
 
-                ...List.generate(schedules.length, (index) {
-                  final item = schedules[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _ScheduleItem(
-                      name: item["name"]!,
-                      time: item["time"]!,
-                      onView: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ApprovalDoctorPage(
-                              name: item["name"]!,
-                              date: item["date"]!,
-                              time: item["time"]!,
-                            ),
+                      ...List.generate(schedules.length, (index) {
+                        final item = schedules[index];
+                        final counselor = item['counselor'] ?? {};
+                        
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _ScheduleItem(
+                            name: counselor['name'] ?? 'Unknown',
+                            time: "${item['start_time']} - ${item['end_time']}",
+                            date: item['scheduled_date'] ?? '',
+                            onView: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ApprovalDoctorPage(
+                                    scheduleData: item,
+                                  ),
+                                ),
+                              );
+
+                              if (result == true) {
+                                _loadSchedules();
+                              }
+                            },
                           ),
                         );
-
-                        /// JIKA APPROVE = TURE → HAPUS DARI LIST
-                        if (result == true || result == false) {
-                          setState(() {
-                            schedules.removeAt(index);
-                          });
-                        }
-                      },
-                    ),
-                  );
-                }),
-              ],
-            ),
+                      }),
+                    ],
+                  ),
+                ),
     );
   }
 }
@@ -117,11 +150,13 @@ class _ScheduleApprovalCounselorsState
 class _ScheduleItem extends StatelessWidget {
   final String name;
   final String time;
+  final String date;
   final VoidCallback onView;
 
   const _ScheduleItem({
     required this.name,
     required this.time,
+    required this.date,
     required this.onView,
   });
 
@@ -155,7 +190,7 @@ class _ScheduleItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  time,
+                  "$date | $time",
                   style: const TextStyle(fontSize: 12, color: Colors.black54),
                 ),
               ],

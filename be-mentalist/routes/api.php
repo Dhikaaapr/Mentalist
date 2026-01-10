@@ -57,5 +57,22 @@ Route::middleware('auth:sanctum')->group(function () {
         
         Route::get('/users', [\App\Http\Controllers\AdminController::class, 'getAllUsers']);
         Route::post('/users/{id}/toggle-status', [\App\Http\Controllers\AdminController::class, 'toggleUserStatus']);
+        
+        Route::get('/reports/stats', [\App\Http\Controllers\AdminController::class, 'getReportStats']);
+
+        // Admin Notifications
+        Route::get('/notifications', [\App\Http\Controllers\AdminController::class, 'getNotifications']);
+        Route::post('/notifications/{id}/read', [\App\Http\Controllers\AdminController::class, 'markAsRead']);
+
+        // Admin Schedule Approval
+        Route::get('/schedules/pending', [\App\Http\Controllers\CounselorScheduleController::class, 'getPendingSchedules']);
+        Route::post('/schedules/{id}/approve', [\App\Http\Controllers\CounselorScheduleController::class, 'approve']);
+        Route::post('/schedules/{id}/reject', [\App\Http\Controllers\CounselorScheduleController::class, 'reject']);
+    });
+
+    // Counselor routes
+    Route::prefix('counselor')->group(function () {
+        Route::post('/schedules', [\App\Http\Controllers\CounselorScheduleController::class, 'store']);
+        Route::get('/schedules', [\App\Http\Controllers\CounselorScheduleController::class, 'index']);
     });
 });

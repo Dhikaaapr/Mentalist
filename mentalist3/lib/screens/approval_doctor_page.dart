@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
+import '../services/admin_api_services.dart';
 
 class ApprovalDoctorPage extends StatefulWidget {
-  final String name;
-  final String date;
-  final String time;
+  final dynamic scheduleData;
 
   const ApprovalDoctorPage({
     super.key,
-    required this.name,
-    required this.date,
-    required this.time,
+    required this.scheduleData,
   });
 
   @override
@@ -18,19 +15,97 @@ class ApprovalDoctorPage extends StatefulWidget {
 
 class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
   bool showSuccess = false;
+  bool isActionLoading = false;
 
   void _approve() async {
-    setState(() => showSuccess = true);
-
-    await Future.delayed(const Duration(seconds: 2));
+    setState(() => isActionLoading = true);
+    
+    final result = await AdminApiService.approveSchedule(widget.scheduleData['id']);
 
     if (!mounted) return;
+    setState(() => isActionLoading = false);
 
-    Navigator.pop(context, true); // ⬅️ kirim status approved
+    if (result['success'] == true) {
+      setState(() => showSuccess = true);
+      await Future.delayed(const Duration(seconds: 2));
+      if (mounted) Navigator.pop(context, true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'] ?? 'Gagal menyetujui jadwal')),
+      );
+    }
+  }
+
+  void _decline() async {
+    final TextEditingController reasonController = TextEditingController();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Decline Request",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Are you sure you want to decline this schedule?"),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                hintText: "Reason (optional)",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("No"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Yes", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      setState(() => isActionLoading = true);
+      final result = await AdminApiService.rejectSchedule(
+        widget.scheduleData['id'], 
+        reasonController.text
+      );
+      
+      if (!mounted) return;
+      setState(() => isActionLoading = false);
+
+      if (result['success'] == true) {
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Gagal menolak jadwal')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final counselor = widget.scheduleData['counselor'] ?? {};
+    final name = counselor['name'] ?? 'Unknown';
+    final date = widget.scheduleData['scheduled_date'] ?? '';
+    final time = "${widget.scheduleData['start_time']} - ${widget.scheduleData['end_time']}";
+
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -58,12 +133,12 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
             children: [
               const Text(
-                "TODAY",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                "APPOINTMENT DETAILS",
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey),
               ),
               const SizedBox(height: 12),
 
-              _sectionTitle("Personal Information"),
+              _sectionTitle("Counselor Information"),
               const SizedBox(height: 8),
               _card(
                 Column(
@@ -84,16 +159,16 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.name,
+                              name,
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 2),
-                            const Text(
-                              "ID : 12345",
-                              style: TextStyle(
+                            Text(
+                              "Email: ${counselor['email'] ?? '-'}",
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.black54,
                               ),
@@ -102,32 +177,13 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    _infoRow("Full Name", "Adi Wijaya S.Psi"),
-                    _infoRow("Date", "March 15, 1999"),
-                    _infoRow("Email", "adiwijaya@gmail.com"),
                   ],
                 ),
               ),
 
               const SizedBox(height: 18),
 
-              _sectionTitle("Spesialis Type"),
-              const SizedBox(height: 8),
-              _card(
-                Row(
-                  children: const [
-                    Icon(Icons.add, color: Color(0xFF3F3D7D)),
-                    SizedBox(width: 10),
-                    Text("Counseling Psychology"),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              _sectionTitle("Date Schedule"),
+              _sectionTitle("Date & Time Schedule"),
               const SizedBox(height: 8),
               _card(
                 Row(
@@ -137,9 +193,9 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.date),
+                        Text(date),
                         Text(
-                          widget.time,
+                          time,
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.black54,
@@ -154,17 +210,21 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
               const SizedBox(height: 28),
 
               if (!showSuccess) ...[
-                _actionButton(
-                  text: "Approve",
-                  color: const Color(0xFF6A7CFF),
-                  onTap: _approve,
-                ),
-                const SizedBox(height: 12),
-                _actionButton(
-                  text: "Decline",
-                  color: const Color(0xFF3F3D7D),
-                  onTap: _decline,
-                ),
+                if (isActionLoading)
+                  const Center(child: CircularProgressIndicator())
+                else ...[
+                  _actionButton(
+                    text: "Approve",
+                    color: const Color(0xFF6A7CFF),
+                    onTap: _approve,
+                  ),
+                  const SizedBox(height: 12),
+                  _actionButton(
+                    text: "Decline",
+                    color: const Color(0xFF3F3D7D),
+                    onTap: _decline,
+                  ),
+                ],
               ],
             ],
           ),
@@ -198,7 +258,7 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        "The request with ${widget.name} has been Approval successfully.",
+                        "The request with $name has been approved successfully.",
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 14,
@@ -213,40 +273,6 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
         ],
       ),
     );
-  }
-
-  void _decline() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
-          "Decline Request",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text("Are you sure you want to decline this schedule?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("No"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Yes", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true && mounted) {
-      Navigator.pop(context, false); // ⬅️ kirim status DECLINE
-    }
   }
 
   /// ================= SMALL WIDGETS =================
@@ -267,21 +293,6 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
       borderRadius: BorderRadius.circular(20),
     ),
     child: child,
-  );
-
-  Widget _infoRow(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-        ),
-        Expanded(child: Text(value, style: const TextStyle(fontSize: 12))),
-      ],
-    ),
   );
 
   Widget _actionButton({
