@@ -739,4 +739,81 @@ class AdminApiService {
       return {'success': false, 'message': 'Kesalahan jaringan'};
     }
   }
+
+  /// -------------------------------
+  /// GET PENDING WEEKLY SCHEDULES
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getPendingWeeklySchedules() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/admin/schedules/weekly/pending'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+      return {'success': false, 'message': 'Gagal mengambil data'};
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
+
+  /// -------------------------------
+  /// APPROVE WEEKLY SCHEDULE
+  /// -------------------------------
+  static Future<Map<String, dynamic>> approveWeeklySchedule(String id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/admin/schedules/weekly/$id/approve'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+      return {'success': false, 'message': 'Gagal approve'};
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
+
+  /// -------------------------------
+  /// REJECT WEEKLY SCHEDULE
+  /// -------------------------------
+  static Future<Map<String, dynamic>> rejectWeeklySchedule(String id, String reason) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/admin/schedules/weekly/$id/reject'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({'admin_notes': reason}),
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+      return {'success': false, 'message': 'Gagal reject'};
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
 }

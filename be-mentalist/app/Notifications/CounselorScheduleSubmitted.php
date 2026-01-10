@@ -38,10 +38,16 @@ class CounselorScheduleSubmitted extends Notification
      */
     public function toArray(object $notifiable): array
     {
+        $isWeekly = isset($this->schedule->day_of_week);
+        $days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        
         return [
             'type' => 'approval_request',
+            'is_weekly' => $isWeekly,
             'title' => 'Approval Request by ' . $this->schedule->counselor->name,
-            'subtitle' => 'for ' . $this->schedule->scheduled_date,
+            'subtitle' => $isWeekly 
+                ? 'Weekly schedule for ' . $days[$this->schedule->day_of_week]
+                : 'One-time schedule for ' . $this->schedule->scheduled_date,
             'time' => $this->schedule->start_time . ' - ' . $this->schedule->end_time,
             'schedule_id' => $this->schedule->id,
             'counselor_name' => $this->schedule->counselor->name,

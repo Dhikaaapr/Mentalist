@@ -43,9 +43,6 @@ class BookingController extends Controller
         return response()->json($result, $result['success'] ? 201 : 400);
     }
 
-    /**
-     * Get list of bookings.
-     */
     public function index(Request $request): JsonResponse
     {
         $status = $request->query('status');
@@ -53,6 +50,18 @@ class BookingController extends Controller
         $result = $this->bookingService->getBookings(
             $request->user()->id,
             $status
+        );
+
+        return response()->json($result);
+    }
+
+    /**
+     * Get bookings for today.
+     */
+    public function today(Request $request): JsonResponse
+    {
+        $result = $this->bookingService->getTodayBookings(
+            $request->user()->id
         );
 
         return response()->json($result);

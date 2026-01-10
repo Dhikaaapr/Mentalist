@@ -12,18 +12,27 @@ class ScheduleApprovalCounselors extends StatefulWidget {
 }
 
 class _ScheduleApprovalCounselorsState
-    extends State<ScheduleApprovalCounselors> {
+    extends State<ScheduleApprovalCounselors> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   bool isLoading = true;
   List<dynamic> schedules = [];
+  List<dynamic> weeklySchedules = [];
   String? errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadSchedules();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadAllSchedules();
   }
 
-  Future<void> _loadSchedules() async {
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAllSchedules() async {
     if (!mounted) return;
     setState(() {
       isLoading = true;
@@ -31,17 +40,22 @@ class _ScheduleApprovalCounselorsState
     });
 
     try {
-      final result = await AdminApiService.getPendingSchedules();
+      final results = await Future.wait([
+        AdminApiService.getPendingSchedules(),
+        AdminApiService.getPendingWeeklySchedules(),
+      ]);
+      
       if (!mounted) return;
 
-      if (result['success'] == true) {
+      if (results[0]['success'] == true && results[1]['success'] == true) {
         setState(() {
-          schedules = result['data'] ?? [];
+          schedules = results[0]['data'] ?? [];
+          weeklySchedules = results[1]['data'] ?? [];
           isLoading = false;
         });
       } else {
         setState(() {
-          errorMessage = result['message'] ?? 'Gagal memuat data';
+          errorMessage = 'Gagal memuat beberapa data';
           isLoading = false;
         });
       }
@@ -73,6 +87,16 @@ class _ScheduleApprovalCounselorsState
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: const Color(0xFF3F3D7D),
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: const Color(0xFF3F3D7D),
+          tabs: const [
+            Tab(text: "One-time"),
+            Tab(text: "Weekly"),
+          ],
+        ),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         ),
@@ -80,68 +104,86 @@ class _ScheduleApprovalCounselorsState
 
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : schedules.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "No approval request",
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: _loadSchedules,
-                        child: const Text('Refresh'),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadSchedules,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-                    children: [
-                      const Text(
-                        "PENDING REQUESTS",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildList(schedules, isWeekly: false),
+                _buildList(weeklySchedules, isWeekly: true),
+              ],
+            ),
+    );
+  }
 
-                      ...List.generate(schedules.length, (index) {
-                        final item = schedules[index];
-                        final counselor = item['counselor'] ?? {};
-                        
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _ScheduleItem(
-                            name: counselor['name'] ?? 'Unknown',
-                            time: "${item['start_time']} - ${item['end_time']}",
-                            date: item['scheduled_date'] ?? '',
-                            onView: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ApprovalDoctorPage(
-                                    scheduleData: item,
-                                  ),
-                                ),
-                              );
+  Widget _buildList(List<dynamic> items, {required bool isWeekly}) {
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "No ${isWeekly ? 'weekly ' : ''}approval request",
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _loadAllSchedules,
+              child: const Text('Refresh'),
+            ),
+          ],
+        ),
+      );
+    }
 
-                              if (result == true) {
-                                _loadSchedules();
-                              }
-                            },
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
+    return RefreshIndicator(
+      onRefresh: _loadAllSchedules,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+        children: [
+          Text(
+            isWeekly ? "WEEKLY RECURRING" : "ONE-TIME REQUESTS",
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          ...List.generate(items.length, (index) {
+            final item = items[index];
+            final counselor = item['counselor'] ?? {};
+            final days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            
+            String dateText = isWeekly 
+                ? "Every ${days[item['day_of_week']]}"
+                : item['scheduled_date'] ?? '';
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _ScheduleItem(
+                name: counselor['name'] ?? 'Unknown',
+                time: "${item['start_time']} - ${item['end_time']}",
+                date: dateText,
+                onView: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ApprovalDoctorPage(
+                        scheduleData: item,
+                        isWeekly: isWeekly,
+                      ),
+                    ),
+                  );
+
+                  if (result == true) {
+                    _loadAllSchedules();
+                  }
+                },
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 }

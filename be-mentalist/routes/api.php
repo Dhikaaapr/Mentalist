@@ -41,6 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Bookings
     Route::prefix('bookings')->group(function () {
         Route::get('/', [BookingController::class, 'index']);
+        Route::get('/today', [BookingController::class, 'today']);
         Route::post('/', [BookingController::class, 'store']);
         Route::get('/{id}', [BookingController::class, 'show']);
         Route::post('/{id}/cancel', [BookingController::class, 'cancel']);
@@ -68,11 +69,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schedules/pending', [\App\Http\Controllers\CounselorScheduleController::class, 'getPendingSchedules']);
         Route::post('/schedules/{id}/approve', [\App\Http\Controllers\CounselorScheduleController::class, 'approve']);
         Route::post('/schedules/{id}/reject', [\App\Http\Controllers\CounselorScheduleController::class, 'reject']);
+
+        // Admin Weekly Schedule Approval
+        Route::get('/schedules/weekly/pending', [\App\Http\Controllers\CounselorScheduleController::class, 'getPendingWeeklySchedules']);
+        Route::post('/schedules/weekly/{id}/approve', [\App\Http\Controllers\CounselorScheduleController::class, 'approveWeekly']);
+        Route::post('/schedules/weekly/{id}/reject', [\App\Http\Controllers\CounselorScheduleController::class, 'rejectWeekly']);
     });
 
     // Counselor routes
     Route::prefix('counselor')->group(function () {
         Route::post('/schedules', [\App\Http\Controllers\CounselorScheduleController::class, 'store']);
         Route::get('/schedules', [\App\Http\Controllers\CounselorScheduleController::class, 'index']);
+        
+        // Counselor Weekly Schedules
+        Route::post('/schedules/weekly', [\App\Http\Controllers\CounselorScheduleController::class, 'storeWeekly']);
+        Route::get('/schedules/weekly', [\App\Http\Controllers\CounselorScheduleController::class, 'indexWeekly']);
+
+        // Counselor Notifications
+        Route::get('/notifications', [\App\Http\Controllers\CounselorController::class, 'getNotifications']);
+        Route::post('/notifications/{id}/read', [\App\Http\Controllers\CounselorController::class, 'markAsRead']);
     });
 });

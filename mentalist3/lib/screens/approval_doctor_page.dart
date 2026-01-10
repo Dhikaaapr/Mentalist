@@ -3,10 +3,12 @@ import '../services/admin_api_services.dart';
 
 class ApprovalDoctorPage extends StatefulWidget {
   final dynamic scheduleData;
+  final bool isWeekly;
 
   const ApprovalDoctorPage({
     super.key,
     required this.scheduleData,
+    this.isWeekly = false,
   });
 
   @override
@@ -20,7 +22,9 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
   void _approve() async {
     setState(() => isActionLoading = true);
     
-    final result = await AdminApiService.approveSchedule(widget.scheduleData['id']);
+    final result = widget.isWeekly
+        ? await AdminApiService.approveWeeklySchedule(widget.scheduleData['id'])
+        : await AdminApiService.approveSchedule(widget.scheduleData['id']);
 
     if (!mounted) return;
     setState(() => isActionLoading = false);
@@ -81,10 +85,9 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
 
     if (confirm == true && mounted) {
       setState(() => isActionLoading = true);
-      final result = await AdminApiService.rejectSchedule(
-        widget.scheduleData['id'], 
-        reasonController.text
-      );
+      final result = widget.isWeekly
+          ? await AdminApiService.rejectWeeklySchedule(widget.scheduleData['id'], reasonController.text)
+          : await AdminApiService.rejectSchedule(widget.scheduleData['id'], reasonController.text);
       
       if (!mounted) return;
       setState(() => isActionLoading = false);
@@ -103,7 +106,12 @@ class _ApprovalDoctorPageState extends State<ApprovalDoctorPage> {
   Widget build(BuildContext context) {
     final counselor = widget.scheduleData['counselor'] ?? {};
     final name = counselor['name'] ?? 'Unknown';
-    final date = widget.scheduleData['scheduled_date'] ?? '';
+    
+    final days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    final date = widget.isWeekly 
+        ? "Every ${days[widget.scheduleData['day_of_week']]}"
+        : widget.scheduleData['scheduled_date'] ?? '';
+        
     final time = "${widget.scheduleData['start_time']} - ${widget.scheduleData['end_time']}";
 
     return Scaffold(

@@ -4,6 +4,9 @@ import 'schedule_page.dart';
 import 'profile_page.dart';
 import 'counselor_list_page.dart';
 import 'history_page.dart';
+import 'notification_page.dart';
+import '../services/counselor_api_service.dart';
+import '../utils/logger.dart';
 
 class CounselorDashboardPage extends StatefulWidget {
   final String counselorName;
@@ -23,6 +26,71 @@ class CounselorDashboardPage extends StatefulWidget {
 
 class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
   int selectedNav = 0;
+  bool isLoading = true;
+  List<dynamic> todayBookings = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    if (!mounted) return;
+    setState(() => isLoading = true);
+
+    try {
+      final result = await CounselorApiService.getTodayBookings();
+      if (!mounted) return;
+
+      setState(() {
+        todayBookings = result['data'] ?? [];
+        isLoading = false;
+      });
+    } catch (e) {
+      AppLogger.error('[COUNSELOR_DASHBOARD] Error loading data: $e');
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
+  }
+
+  String _getCurrentDate() {
+    final now = DateTime.now();
+    final months = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    return "${months[now.month - 1]} ${now.day}, ${now.year}";
+  }
+
+  String _formatTime(String isoString) {
+    try {
+      final dateTime = DateTime.parse(isoString).toLocal();
+      final hour = dateTime.hour.toString().padLeft(2, '0');
+      final minute = dateTime.minute.toString().padLeft(2, '0');
+      return "$hour:$minute";
+    } catch (e) {
+      return "--:--";
+    }
+  }
+
+  Map<String, dynamic> _getStatusStyle(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return {'label': 'Done', 'color': Colors.green};
+      case 'confirmed':
+        return {'label': 'Confirmed', 'color': const Color.fromARGB(255, 58, 26, 243)};
+      case 'pending':
+        return {'label': 'Pending', 'color': Colors.orange};
+      case 'cancelled':
+        return {'label': 'Cancelled', 'color': Colors.red};
+      case 'rejected':
+        return {'label': 'Rejected', 'color': Colors.grey};
+      default:
+        return {'label': status, 'color': const Color.fromARGB(255, 51, 7, 128)};
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +132,10 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
 
                   /// Notification
                   IconButton(
-                    onPressed: () {},
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NotificationPage()),
+                    ),
                     icon: const Icon(
                       Icons.notifications_none_rounded,
                       color: Colors.purple,
@@ -77,7 +148,7 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
               const SizedBox(height: 5),
 
               Text(
-                "Nov 9, 2025",
+                _getCurrentDate(),
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
               const SizedBox(height: 3),
@@ -94,121 +165,130 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
       ),
 
       /// -------- BODY --------
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Quick Stats",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 15),
-
-            /// Row 1
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                statItem(number: "5", label: "Session\nThis Week"),
-                statItem(number: "12", label: "Counseling\nNotes"),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            /// Row 2
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                statItem(
-                  number: "4",
-                  label: "Active Clients",
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CounselorListPage(),
-                      ),
-                    );
-                  },
-                ),
-                statItem(number: "8", label: "Hours\nRemaining"),
-              ],
-            ),
-
-            const SizedBox(height: 30),
-
-            /// -------- TODAY SCHEDULE INSIDE BORDER --------
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: const Color(0xffe6e6e6),
-                borderRadius: BorderRadius.circular(20),
+      body: RefreshIndicator(
+        onRefresh: _loadDashboardData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Quick Stats",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+
+              const SizedBox(height: 15),
+
+              /// Row 1
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  /// Title + View Clients Button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Today's Schedule",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SchedulePage(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          "View Clients",
-                          style: TextStyle(
-                            color: Color.fromARGB(255, 110, 16, 183),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  Text(
-                    "November 9, 2025",
-                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  scheduleCard(
-                    "Nathaniel A",
-                    "08:00 - 10:00",
-                    Colors.green,
-                    "Done",
-                  ),
-                  scheduleCard(
-                    "Sarah L",
-                    "11:00 - 13:00",
-                    const Color.fromARGB(255, 58, 26, 243),
-                    "Ongoing",
-                  ),
-                  scheduleCard(
-                    "Timothy",
-                    "14:00 - 17:00",
-                    const Color.fromARGB(255, 51, 7, 128),
-                    "Start",
-                  ),
+                  statItem(number: "5", label: "Session\nThis Week"),
+                  statItem(number: "12", label: "Counseling\nNotes"),
                 ],
               ),
-            ),
-          ],
+
+              const SizedBox(height: 12),
+
+              /// Row 2
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  statItem(
+                    number: "4",
+                    label: "Active Clients",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CounselorListPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  statItem(number: "8", label: "Hours\nRemaining"),
+                ],
+              ),
+
+              const SizedBox(height: 30),
+
+              /// -------- TODAY SCHEDULE INSIDE BORDER --------
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: const Color(0xffe6e6e6),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    /// Title + View Clients Button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Today's Schedule",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SchedulePage(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            "View Clients",
+                            style: TextStyle(
+                              color: Color.fromARGB(255, 110, 16, 183),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    Text(
+                      _getCurrentDate(),
+                      style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    if (isLoading)
+                      const Center(child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: CircularProgressIndicator(),
+                      ))
+                    else if (todayBookings.isEmpty)
+                      const Center(child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Text("No sessions for today", style: TextStyle(color: Colors.grey)),
+                      ))
+                    else
+                      ...todayBookings.map((booking) {
+                        final user = booking['user'] ?? {};
+                        final time = _formatTime(booking['scheduled_at']);
+                        final style = _getStatusStyle(booking['status'] ?? '');
+                        
+                        return scheduleCard(
+                          user['name'] ?? 'Unknown Patient',
+                          time,
+                          style['color'],
+                          style['label'],
+                        );
+                      }),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
 

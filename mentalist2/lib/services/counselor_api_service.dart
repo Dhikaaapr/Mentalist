@@ -150,17 +150,107 @@ class CounselorApiService {
       }
 
       return {
-        'success': false,
-        'message': 'Login Google gagal',
-        'error': 'server_error',
+        'success' : false,
+        'message' : 'Login Google gagal',
+        'error' : 'server_error',
       };
     } catch (e) {
       AppLogger.error('[COUNSELOR] Google login error: $e');
       return {
-        'success': false,
-        'message': 'Terjadi kesalahan saat login Google',
-        'error': 'unknown_error',
+        'success' : false,
+        'message' : 'Terjadi kesalahan saat login Google',
+        'error' : 'unknown_error',
       };
+    }
+  }
+
+  /// -------------------------------
+  /// GET TODAY BOOKINGS
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getTodayBookings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {'success' : false, 'message' : 'Token tidak ditemukan'};
+      }
+
+      AppLogger.info('📡 [COUNSELOR] Get today bookings → $baseUrl/bookings/today');
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/bookings/today'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success' : true, ...json.decode(response.body)};
+      }
+      return {'success' : false, 'message' : 'Gagal mengambil data'};
+    } catch (e) {
+      AppLogger.error('[COUNSELOR] Error today bookings: $e');
+      return {'success' : false, 'message' : 'Kesalahan jaringan'};
+    }
+  }
+
+  /// -------------------------------
+  /// GET NOTIFICATIONS
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {'success': false, 'message': 'Token tidak ditemukan'};
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/counselor/notifications'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+      return {'success': false, 'message': 'Gagal mengambil notifikasi'};
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
+
+  /// -------------------------------
+  /// MARK NOTIFICATION AS READ
+  /// -------------------------------
+  static Future<Map<String, dynamic>> markNotificationAsRead(String id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {'success': false, 'message': 'Token tidak ditemukan'};
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/counselor/notifications/$id/read'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success': true, ...json.decode(response.body)};
+      }
+      return {'success': false, 'message': 'Gagal memproses'};
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan jaringan'};
     }
   }
 }

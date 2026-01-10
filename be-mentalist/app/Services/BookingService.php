@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Booking;
 use App\Models\User;
 use App\Models\Role;
+use App\Notifications\NewBookingNotification;
 
 class BookingService
 {
@@ -46,6 +47,9 @@ class BookingService
             'status' => 'pending',
         ]);
 
+        // Notify counselor
+        $counselor->notify(new NewBookingNotification($booking));
+
         return [
             'success' => true,
             'message' => 'Booking berhasil dibuat',
@@ -53,9 +57,6 @@ class BookingService
         ];
     }
 
-    /**
-     * Get bookings for a user (as user or counselor).
-     */
     public function getBookings(string $userId, ?string $status = null): array
     {
         $user = User::with('role')->find($userId);
@@ -75,6 +76,31 @@ class BookingService
         }
 
         $bookings = $query->orderBy('scheduled_at', 'desc')->get();
+
+        return [
+            'success' => true,
+            'data' => $bookings->map(fn($b) => $this->formatBooking($b)),
+        ];
+    }
+
+    /**
+     * Get bookings for today.
+     */
+    public function getTodayBookings(string $userId): array
+    {
+        $user = User::with('role')->find($userId);
+        $query = Booking::with(['user', 'counselor']);
+
+        if ($user->role->name === 'konselor') {
+            $query->where('counselor_id', $userId);
+        } else {
+            $query->where('user_id', $userId);
+        }
+
+        // Filter for today
+        $bookings = $query->whereDate('scheduled_at', now()->toDateString())
+            ->orderBy('scheduled_at', 'asc')
+            ->get();
 
         return [
             'success' => true,
