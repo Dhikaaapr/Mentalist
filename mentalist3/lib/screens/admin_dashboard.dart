@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'report_page.dart';
-import 'counselor_list_page.dart';
-import 'user_list_page.dart';
+import 'admin_management_page.dart'; // Import the new page
+import 'admin_user_management_page.dart'; // Import user management page
 import 'notification_page.dart';
 import 'schedule_approval_counselors.dart'; // ✅ FIX
 import 'schedule_management_users.dart';
@@ -24,12 +24,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     {
       'icon': Icons.groups_rounded,
       'title': "Management",
-      'page': const CounselorListPage(),
+      'page': const AdminManagementPage(), // Updated to new page
     },
     {
       'icon': Icons.calendar_month_rounded,
       'title': "Setting Session",
-      'page': const UserListPage(),
+      'page': const AdminUserManagementPage(), // Updated to user management
     },
   ];
 

@@ -49,4 +49,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/reschedule', [BookingController::class, 'reschedule']);
         Route::post('/{id}/complete', [BookingController::class, 'complete']);
     });
+
+    // Admin routes (admin role only)
+    Route::middleware(\App\Http\Middleware\IsAdmin::class)->prefix('admin')->group(function () {
+        Route::get('/counselors', [\App\Http\Controllers\AdminController::class, 'getAllCounselors']);
+        Route::post('/counselors/{id}/toggle-status', [\App\Http\Controllers\AdminController::class, 'toggleCounselorStatus']);
+        
+        Route::get('/users', [\App\Http\Controllers\AdminController::class, 'getAllUsers']);
+        Route::post('/users/{id}/toggle-status', [\App\Http\Controllers\AdminController::class, 'toggleUserStatus']);
+    });
 });

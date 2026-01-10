@@ -35,6 +35,7 @@ class User extends Authenticatable
         'role_id',
         'google_id',
         'password',
+        'is_active',
     ];
 
     /**
@@ -58,6 +59,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'deleted_at' => 'datetime',
+            'is_active' => 'boolean',
         ];
     }
     

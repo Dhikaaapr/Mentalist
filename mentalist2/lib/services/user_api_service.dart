@@ -6,10 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logger.dart';
 
 class UserApiService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  // static const String baseUrl = 'http://192.168.1.15:8000/api';
+  static const String baseUrl = 'http://192.168.100.11:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 

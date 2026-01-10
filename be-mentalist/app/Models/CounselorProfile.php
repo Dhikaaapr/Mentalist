@@ -25,6 +25,7 @@ class CounselorProfile extends Model
     protected $fillable = [
         'user_id',
         'is_accepting_patients',
+        'is_active',
         'bio',
         'specialization',
     ];
@@ -38,6 +39,7 @@ class CounselorProfile extends Model
     {
         return [
             'is_accepting_patients' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 

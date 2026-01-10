@@ -49,6 +49,30 @@ class AuthService
             ];
         }
 
+        // Check if user is a counselor and if their account is active
+        if ($user['role_name'] === 'konselor') {
+            $userModel = \App\Models\User::with('counselorProfile')->find($user['id']);
+            $counselorProfile = $userModel->counselorProfile;
+            
+            if ($counselorProfile && !$counselorProfile->is_active) {
+                return [
+                    'success' => false,
+                    'message' => 'Akun konselor tidak aktif. Hubungi administrator.'
+                ];
+            }
+        }
+
+        // Check if user is a regular user and if their account is active
+        if ($user['role_name'] === 'user') {
+            $userModel = \App\Models\User::find($user['id']);
+            if (!$userModel->is_active) {
+                return [
+                    'success' => false,
+                    'message' => 'Akun Anda telah dinonaktifkan. Hubungi administrator.'
+                ];
+            }
+        }
+
         // Create token
         $token = $this->tokenRepository->createToken(
             $user['id'],
