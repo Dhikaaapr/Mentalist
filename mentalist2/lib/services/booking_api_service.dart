@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class BookingApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
-    static const String baseUrl = 'http://192.168.100.11:8000/api';
+  static const String baseUrl = 'http://10.114.159.43:8000/api';
   static const Duration timeoutDuration = Duration(seconds: 30);
 
   /// GET BOOKINGS (for counselor - shows bookings assigned to them)
@@ -16,7 +16,11 @@ class BookingApiService {
       final token = prefs.getString('accessToken') ?? '';
 
       if (token.isEmpty) {
-        return {'success': false, 'message': 'Belum login', 'error': 'no_token'};
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
       }
 
       String url = '$baseUrl/bookings';
@@ -56,7 +60,11 @@ class BookingApiService {
       final token = prefs.getString('accessToken') ?? '';
 
       if (token.isEmpty) {
-        return {'success': false, 'message': 'Belum login', 'error': 'no_token'};
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
       }
 
       final response = await http
@@ -75,7 +83,10 @@ class BookingApiService {
         return {'success': true, 'message': 'Booking berhasil dikonfirmasi'};
       }
 
-      return {'success': false, 'message': data['message'] ?? 'Gagal konfirmasi'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal konfirmasi',
+      };
     } on TimeoutException {
       return {'success': false, 'message': 'Koneksi timeout'};
     } on SocketException {
@@ -86,13 +97,20 @@ class BookingApiService {
   }
 
   /// REJECT BOOKING (counselor declines)
-  static Future<Map<String, dynamic>?> rejectBooking(String id, {String? reason}) async {
+  static Future<Map<String, dynamic>?> rejectBooking(
+    String id, {
+    String? reason,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
 
       if (token.isEmpty) {
-        return {'success': false, 'message': 'Belum login', 'error': 'no_token'};
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
       }
 
       final body = <String, dynamic>{};
@@ -129,18 +147,23 @@ class BookingApiService {
   }
 
   /// RESCHEDULE BOOKING
-  static Future<Map<String, dynamic>?> rescheduleBooking(String id, DateTime newScheduledAt) async {
+  static Future<Map<String, dynamic>?> rescheduleBooking(
+    String id,
+    DateTime newScheduledAt,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
 
       if (token.isEmpty) {
-        return {'success': false, 'message': 'Belum login', 'error': 'no_token'};
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
       }
 
-      final body = {
-        'scheduled_at': newScheduledAt.toUtc().toIso8601String(),
-      };
+      final body = {'scheduled_at': newScheduledAt.toUtc().toIso8601String()};
 
       final response = await http
           .post(
@@ -160,7 +183,10 @@ class BookingApiService {
         return {'success': true, 'message': 'Jadwal berhasil diubah'};
       }
 
-      return {'success': false, 'message': data['message'] ?? 'Gagal reschedule'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal reschedule',
+      };
     } on TimeoutException {
       return {'success': false, 'message': 'Koneksi timeout'};
     } on SocketException {
@@ -177,7 +203,11 @@ class BookingApiService {
       final token = prefs.getString('accessToken') ?? '';
 
       if (token.isEmpty) {
-        return {'success': false, 'message': 'Belum login', 'error': 'no_token'};
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
       }
 
       final response = await http
@@ -196,7 +226,10 @@ class BookingApiService {
         return {'success': true, 'message': 'Booking selesai'};
       }
 
-      return {'success': false, 'message': data['message'] ?? 'Gagal menyelesaikan'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal menyelesaikan',
+      };
     } on TimeoutException {
       return {'success': false, 'message': 'Koneksi timeout'};
     } on SocketException {

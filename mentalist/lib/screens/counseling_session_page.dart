@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/booking_api_service.dart';
+import 'package:intl/intl.dart';
 
 class CounselingSessionPage extends StatefulWidget {
   const CounselingSessionPage({super.key});
@@ -9,6 +11,41 @@ class CounselingSessionPage extends StatefulWidget {
 
 class _CounselingSessionPageState extends State<CounselingSessionPage> {
   int selectedTab = 0;
+  List<dynamic> upcomingSessions = [];
+  List<dynamic> completedSessions = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSessions();
+  }
+
+  Future<void> _fetchSessions() async {
+    setState(() => isLoading = true);
+    try {
+      // Fetch all bookings and filter manually or fetch separately
+      final allBookingsResult = await BookingApiService.getBookings();
+      
+      if (allBookingsResult != null && allBookingsResult['success'] == true) {
+        final List<dynamic> all = allBookingsResult['data'] ?? [];
+        
+        setState(() {
+          upcomingSessions = all.where((b) => 
+            b['status'] == 'pending' || b['status'] == 'confirmed').toList();
+          
+          completedSessions = all.where((b) => 
+            b['status'] == 'completed' || b['status'] == 'cancelled' || b['status'] == 'rejected').toList();
+            
+          isLoading = false;
+        });
+      } else {
+        setState(() => isLoading = false);
+      }
+    } catch (e) {
+      setState(() => isLoading = false);
+    }
+  }
 
   // 🔧 ADDED — state khusus RESCHEDULE (TIDAK GANGGU CANCEL)
   DateTime _selectedDate = DateTime.now();
@@ -28,29 +65,10 @@ class _CounselingSessionPageState extends State<CounselingSessionPage> {
     "14 : 00   —   17 : 00",
   ];
 
-  final List<Map<String, dynamic>> sessions = [
-    {
-      "name": "Dr. Emily Chen",
-      "date": "Nov 22, 2025",
-      "time": "2:00 PM",
-      "online": true,
-    },
-    {
-      "name": "Dr. Michael Roberts",
-      "date": "Nov 25, 2025",
-      "time": "12:00 PM",
-      "online": true,
-    },
-    {
-      "name": "Dr. Jana Rohima",
-      "date": "Nov 27, 2025",
-      "time": "10:00 PM",
-      "online": false,
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final List<dynamic> currentSessions = selectedTab == 0 ? upcomingSessions : completedSessions;
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -67,11 +85,15 @@ class _CounselingSessionPageState extends State<CounselingSessionPage> {
           ),
           const SizedBox(height: 10),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: sessions.length,
-              itemBuilder: (_, i) => _sessionCard(sessions[i]),
-            ),
+            child: isLoading 
+              ? const Center(child: CircularProgressIndicator())
+              : currentSessions.isEmpty
+                ? Center(child: Text("No ${selectedTab == 0 ? 'upcoming' : 'completed'} sessions"))
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: currentSessions.length,
+                    itemBuilder: (_, i) => _sessionCard(currentSessions[i]),
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -80,7 +102,9 @@ class _CounselingSessionPageState extends State<CounselingSessionPage> {
                 backgroundColor: const Color(0xff5565FF),
                 minimumSize: const Size(double.infinity, 52),
               ),
-              onPressed: () {},
+              onPressed: () {
+                // Navigate to search counselor
+              },
               child: const Text("Book New Session"),
             ),
           ),
@@ -733,6 +757,11 @@ class _CounselingSessionPageState extends State<CounselingSessionPage> {
   }
 
   Widget _sessionCard(Map data) {
+    final scheduledAt = DateTime.parse(data['scheduled_at']).toLocal();
+    final String status = data['status'] ?? 'pending';
+    final bool isActionable = status == 'pending' || status == 'confirmed';
+    final String counselorName = data['counselor']['name'] ?? 'Counselor';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       padding: const EdgeInsets.all(16),
@@ -740,38 +769,56 @@ class _CounselingSessionPageState extends State<CounselingSessionPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const CircleAvatar(radius: 24, backgroundColor: Colors.grey),
+              CircleAvatar(
+                radius: 24,
+                backgroundImage: data['counselor']['picture'] != null
+                    ? NetworkImage(data['counselor']['picture'])
+                    : null,
+                backgroundColor: Colors.grey.shade300,
+                child: data['counselor']['picture'] == null
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      data["name"],
+                      counselorName,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.circle,
-                          size: 10,
-                          color: data["online"] ? Colors.green : Colors.grey,
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(status).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        status.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: _getStatusColor(status),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          data["online"] ? "Online" : "Offline",
-                          style: TextStyle(fontSize: 13, color: Colors.grey),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
@@ -786,7 +833,10 @@ class _CounselingSessionPageState extends State<CounselingSessionPage> {
             children: [
               const Icon(Icons.calendar_month, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
-              Text(data["date"], style: const TextStyle(fontSize: 14)),
+              Text(
+                DateFormat('MMM d, yyyy').format(scheduledAt),
+                style: const TextStyle(fontSize: 14),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -794,50 +844,69 @@ class _CounselingSessionPageState extends State<CounselingSessionPage> {
             children: [
               const Icon(Icons.access_time, size: 18, color: Colors.grey),
               const SizedBox(width: 8),
-              Text(data["time"], style: const TextStyle(fontSize: 14)),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff5565FF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () => _showCancelSessionDialog(data["name"]),
-
-                  child: const Text("Cancel Session"),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade300,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () => _showRescheduleBottomDialog(data["name"]),
-
-                  child: const Text(
-                    "Reschedule",
-                    style: TextStyle(color: Colors.black),
-                  ),
-                ),
+              Text(
+                DateFormat('h:mm a').format(scheduledAt),
+                style: const TextStyle(fontSize: 14),
               ),
             ],
           ),
+
+          if (isActionable) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff5565FF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () => _showCancelSessionDialog(counselorName),
+                    child: const Text("Cancel Session"),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade300,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () => _showRescheduleBottomDialog(counselorName),
+                    child: const Text(
+                      "Reschedule",
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'confirmed':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'completed':
+        return Colors.blue;
+      case 'cancelled':
+        return Colors.red;
+      case 'rejected':
+        return Colors.redAccent;
+      default:
+        return Colors.grey;
+    }
   }
 }

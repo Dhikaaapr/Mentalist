@@ -12,59 +12,42 @@ class CounselorPage extends StatefulWidget {
 class _CounselorPageState extends State<CounselorPage> {
   final TextEditingController searchController = TextEditingController();
 
+  List<dynamic> counselors = [];
+  List<dynamic> filteredList = [];
+
   bool isLoading = true;
   String? errorMessage;
-  List<Map<String, dynamic>> counselors = [];
-  List<Map<String, dynamic>> filteredList = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCounselors();
+    fetchCounselors();
   }
 
-  @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadCounselors() async {
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
-
-    final result = await CounselorApiService.getAvailableCounselors();
-
-    if (result != null && result['success'] == true) {
-      final data = result['data'] as List;
+  Future<void> fetchCounselors() async {
+    try {
+      final data = await CounselorApiService.getCounselors();
       setState(() {
-        counselors = data.map((e) => Map<String, dynamic>.from(e)).toList();
-        filteredList = counselors;
+        counselors = data;
+        filteredList = data; // ✅ Initialize filteredList
+        isLoading = false;
       });
-    } else {
+    } catch (e) {
       setState(() {
-        errorMessage = result?['message'] ?? 'Gagal memuat daftar konselor';
+        isLoading = false;
+        errorMessage = e.toString().contains('Exception:') 
+            ? e.toString().split('Exception: ')[1] 
+            : 'Terjadi kesalahan saat memuat data';
       });
     }
-
-    setState(() => isLoading = false);
   }
 
   void filterSearch(String query) {
     setState(() {
-      if (query.isEmpty) {
-        filteredList = counselors;
-      } else {
-        filteredList = counselors
-            .where((c) =>
-                (c['name'] ?? '').toLowerCase().contains(query.toLowerCase()) ||
-                (c['specialization'] ?? '')
-                    .toLowerCase()
-                    .contains(query.toLowerCase()))
-            .toList();
-      }
+      filteredList = counselors.where((c) {
+        final name = (c['name'] ?? '').toString().toLowerCase();
+        return name.contains(query.toLowerCase());
+      }).toList();
     });
   }
 
@@ -91,12 +74,6 @@ class _CounselorPageState extends State<CounselorPage> {
             color: Colors.black,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.black87),
-            onPressed: _loadCounselors,
-          ),
-        ],
       ),
 
       body: Padding(
@@ -122,152 +99,112 @@ class _CounselorPageState extends State<CounselorPage> {
 
             const SizedBox(height: 20),
 
-            /// 📍 LIST
+            /// ================= CONTENT =================
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : errorMessage != null
-                      ? _buildErrorState()
-                      : filteredList.isEmpty
-                          ? _buildEmptyState()
-                          : _buildCounselorList(),
+                  ? Center(child: Text(errorMessage!))
+                  : filteredList.isEmpty
+                  ? const Center(child: Text("No counselor found"))
+                  : ListView.builder(
+                      itemCount: filteredList.length,
+                      itemBuilder: (_, i) {
+                        final c = filteredList[i];
+                        final bool isOnline = c['is_online'] == true;
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CounselorDetailPage(data: c),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: Row(
+                              children: [
+                                /// 👤 Avatar
+                                CircleAvatar(
+                                  radius: 30,
+                                  backgroundColor: Colors.grey.shade300,
+                                  child: Text(
+                                    (c['name'] ?? 'U')[0],
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(width: 18),
+
+                                /// 📌 Detail
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        c['name'] ?? '-',
+                                        style: const TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.circle,
+                                            size: 10,
+                                            color: isOnline
+                                                ? Colors.green
+                                                : Colors.grey,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            isOnline ? "Online" : "Offline",
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: isOnline
+                                                  ? Colors.green
+                                                  : Colors.grey,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                /// Placeholder trailing element
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(6),
+                                    color: Colors.grey.shade200,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(
-            errorMessage!,
-            style: TextStyle(color: Colors.grey.shade600),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: _loadCounselors,
-            icon: const Icon(Icons.refresh),
-            label: const Text("Coba Lagi"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xff6b38f0),
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.person_search, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(
-            searchController.text.isNotEmpty
-                ? "Tidak ada konselor yang cocok"
-                : "Belum ada konselor tersedia",
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCounselorList() {
-    return RefreshIndicator(
-      onRefresh: _loadCounselors,
-      child: ListView.builder(
-        itemCount: filteredList.length,
-        itemBuilder: (_, i) {
-          final c = filteredList[i];
-
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CounselorDetailPage(data: c),
-                ),
-              );
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Row(
-                children: [
-                  /// 👤 Avatar
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: const Color(0xff6b38f0),
-                    backgroundImage: c['picture'] != null
-                        ? NetworkImage(c['picture'])
-                        : null,
-                    child: c['picture'] == null
-                        ? Text(
-                            (c['name'] ?? 'C')[0].toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 22,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : null,
-                  ),
-
-                  const SizedBox(width: 18),
-
-                  /// 📌 Detail
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          c['name'] ?? 'Unknown',
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          c['specialization'] ?? 'Konselor',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  /// Arrow icon
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: Colors.grey.shade400,
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
       ),
     );
   }

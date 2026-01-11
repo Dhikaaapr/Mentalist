@@ -41,6 +41,11 @@ class GoogleAuthService
         ]);
 
         if (!$tokenInfo->successful()) {
+            Log::error('Google ID token verification failed', [
+                'status' => $tokenInfo->status(),
+                'body' => $tokenInfo->body(),
+                'token_prefix' => substr($idToken, 0, 10) . '...',
+            ]);
             return [
                 'success' => false,
                 'message' => 'Invalid Google ID token.',
@@ -66,6 +71,7 @@ class GoogleAuthService
             Log::warning('Google login rejected due to audience mismatch', [
                 'audience' => $audience,
                 'allowed' => $allowedAudiences,
+                'client_id' => config('services.google.client_id'),
             ]);
             return [
                 'success' => false,
@@ -74,6 +80,9 @@ class GoogleAuthService
         }
 
         if (!isset($payload['email'])) {
+            Log::warning('Google login rejected: email missing in payload', [
+                'payload_keys' => array_keys($payload),
+            ]);
             return [
                 'success' => false,
                 'message' => 'Google account does not provide an email address.',

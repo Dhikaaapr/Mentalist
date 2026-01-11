@@ -104,6 +104,16 @@ class _CounselorLoginPageState extends State<CounselorLoginPage> {
   void _handleLoginResponse(Map<String, dynamic>? response) {
     if (response != null && response['success'] == true) {
       final user = response['user'];
+      final role = user['role']?['name'] ?? '';
+
+      if (role != 'konselor') {
+        AppLogger.error('[COUNSELOR] Akses ditolak: Role $role tidak diizinkan');
+        _showSnackBar(
+          'Akses ditolak. Akun ini tidak terdaftar sebagai konselor.',
+          Colors.redAccent,
+        );
+        return;
+      }
 
       Navigator.pushReplacement(
         context,

@@ -7,6 +7,8 @@ import 'counseling_session_page.dart';
 import 'history_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_page.dart';
+import '../services/booking_api_service.dart';
+import 'package:intl/intl.dart';
 
 class UserDashboardPage extends StatefulWidget {
   final String userName;
@@ -146,6 +148,22 @@ class _HomeViewState extends State<HomeView> {
   };
 
   List<Color> weeklyColors = List.generate(7, (_) => Colors.grey.shade300);
+  Map<String, dynamic>? latestBooking;
+  bool isBookingLoading = true;
+
+  void _loadLatestBooking() async {
+    setState(() => isBookingLoading = true);
+    final result = await BookingApiService.getLatestConfirmedBooking();
+    if (result != null && result['success'] == true) {
+      setState(() {
+        latestBooking = result['data'];
+        isBookingLoading = false;
+      });
+    } else {
+      setState(() => isBookingLoading = false);
+    }
+  }
+
   void _loadWeeklyMood() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -250,6 +268,7 @@ class _HomeViewState extends State<HomeView> {
   void initState() {
     super.initState();
     _loadWeeklyMood();
+    _loadLatestBooking();
   }
 
   @override
@@ -468,74 +487,118 @@ class _HomeViewState extends State<HomeView> {
             ),
             const SizedBox(height: 12),
 
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 69, 137, 255),
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 8,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  // FOTO DOKTER
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      "https://randomuser.me/api/portraits/women/44.jpg",
-                      height: 65,
-                      width: 65,
-                      fit: BoxFit.cover,
+            if (isBookingLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (latestBooking != null)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 69, 137, 255),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
                     ),
-                  ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // FOTO KONSELOR
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: latestBooking!['counselor']['picture'] != null
+                          ? Image.network(
+                              latestBooking!['counselor']['picture'],
+                              height: 65,
+                              width: 65,
+                              fit: BoxFit.cover,
+                            )
+                          : Container(
+                              height: 65,
+                              width: 65,
+                              color: Colors.white24,
+                              child: const Icon(Icons.person, color: Colors.white),
+                            ),
+                    ),
 
-                  const SizedBox(width: 14),
+                    const SizedBox(width: 14),
 
-                  // NAMA + JADWAL
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        "Dr. Maya Putri",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    // NAMA + JADWAL
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            latestBooking!['counselor']['name'] ?? 'Konselor',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('EEEE, h:mm a').format(
+                              DateTime.parse(latestBooking!['scheduled_at']).toLocal(),
+                            ),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color.fromARGB(255, 248, 247, 247),
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        "Wednesday, 4:00 PM",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color.fromARGB(255, 248, 247, 247),
-                        ),
+                    ),
+
+                    // ICON NEXT
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white24,
+                        shape: BoxShape.circle,
                       ),
-                    ],
-                  ),
-
-                  const Spacer(),
-
-                  // ICON NEXT
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Color(0xFF4589FF).withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
+                      child: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 16,
-                      color: Color(0xFF4589FF),
+                  ],
+                ),
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.calendar_today_outlined, color: Colors.grey.shade400, size: 32),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "No upcoming session",
+                      style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to find counselor
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CounselorPage()),
+                        );
+                      },
+                      child: const Text("Find a counselor"),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
             const SizedBox(height: 30),
 

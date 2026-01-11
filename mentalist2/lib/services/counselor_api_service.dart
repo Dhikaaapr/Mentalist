@@ -9,7 +9,7 @@ class CounselorApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://192.168.100.11:8000/api';
+  static const String baseUrl = 'http://10.114.159.43:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -54,8 +54,14 @@ class CounselorApiService {
         if (data['token'] != null) {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('accessToken', data['token']);
-          await prefs.setString('role', 'counselor');
-          AppLogger.info('[COUNSELOR] Token disimpan');
+
+          String userRole = 'konselor';
+          if (data['user'] != null && data['user']['role'] != null) {
+            userRole = data['user']['role']['name'] ?? 'konselor';
+          }
+          await prefs.setString('role', userRole);
+
+          AppLogger.info('[COUNSELOR] Token disimpan dengan role: $userRole');
         }
 
         data['success'] = true;
@@ -135,7 +141,13 @@ class CounselorApiService {
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('accessToken', data['token']);
-        await prefs.setString('role', 'counselor');
+
+        // Simpan role dari backend (biasanya 'konselor')
+        String userRole = 'konselor';
+        if (data['user'] != null && data['user']['role'] != null) {
+          userRole = data['user']['role']['name'] ?? 'konselor';
+        }
+        await prefs.setString('role', userRole);
 
         data['success'] = true;
         return data;
@@ -150,16 +162,16 @@ class CounselorApiService {
       }
 
       return {
-        'success' : false,
-        'message' : 'Login Google gagal',
-        'error' : 'server_error',
+        'success': false,
+        'message': 'Login Google gagal',
+        'error': 'server_error',
       };
     } catch (e) {
       AppLogger.error('[COUNSELOR] Google login error: $e');
       return {
-        'success' : false,
-        'message' : 'Terjadi kesalahan saat login Google',
-        'error' : 'unknown_error',
+        'success': false,
+        'message': 'Terjadi kesalahan saat login Google',
+        'error': 'unknown_error',
       };
     }
   }
@@ -173,26 +185,30 @@ class CounselorApiService {
       final token = prefs.getString('accessToken') ?? '';
 
       if (token.isEmpty) {
-        return {'success' : false, 'message' : 'Token tidak ditemukan'};
+        return {'success': false, 'message': 'Token tidak ditemukan'};
       }
 
-      AppLogger.info('📡 [COUNSELOR] Get today bookings → $baseUrl/bookings/today');
+      AppLogger.info(
+        '📡 [COUNSELOR] Get today bookings → $baseUrl/bookings/today',
+      );
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/bookings/today'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/bookings/today'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
-        return {'success' : true, ...json.decode(response.body)};
+        return {'success': true, ...json.decode(response.body)};
       }
-      return {'success' : false, 'message' : 'Gagal mengambil data'};
+      return {'success': false, 'message': 'Gagal mengambil data'};
     } catch (e) {
       AppLogger.error('[COUNSELOR] Error today bookings: $e');
-      return {'success' : false, 'message' : 'Kesalahan jaringan'};
+      return {'success': false, 'message': 'Kesalahan jaringan'};
     }
   }
 
@@ -208,13 +224,15 @@ class CounselorApiService {
         return {'success': false, 'message': 'Token tidak ditemukan'};
       }
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/counselor/notifications'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/counselor/notifications'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return {'success': true, ...json.decode(response.body)};
@@ -237,13 +255,15 @@ class CounselorApiService {
         return {'success': false, 'message': 'Token tidak ditemukan'};
       }
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/counselor/notifications/$id/read'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/counselor/notifications/$id/read'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return {'success': true, ...json.decode(response.body)};

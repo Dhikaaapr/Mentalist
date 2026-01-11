@@ -24,9 +24,7 @@ class CounselorProfileController extends Controller
         }
 
         $counselors = User::where('role_id', $counselorRole->id)
-            ->whereHas('counselorProfile', function ($query) {
-                $query->where('is_accepting_patients', true);
-            })
+            ->whereHas('counselorProfile')
             ->with('counselorProfile')
             ->get()
             ->map(function ($user) {
@@ -37,6 +35,7 @@ class CounselorProfileController extends Controller
                     'picture' => $user->picture,
                     'bio' => $user->counselorProfile->bio,
                     'specialization' => $user->counselorProfile->specialization,
+                    'is_online' => $user->counselorProfile->is_active ?? false,
                 ];
             });
 
