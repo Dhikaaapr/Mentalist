@@ -5,6 +5,7 @@ import 'profile_page.dart';
 import 'counselor_list_page.dart';
 import 'history_page.dart';
 import 'notification_page.dart';
+import 'chat_list_page.dart';
 import '../services/counselor_api_service.dart';
 import '../utils/logger.dart';
 
@@ -304,7 +305,8 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
           children: [
             _navItem(index: 0, icon: Icons.home),
             _navItem(index: 1, icon: Icons.calendar_month),
-            _navItem(index: 2, icon: Icons.history),
+            _navItem(index: 2, icon: Icons.chat_bubble_rounded),
+            _navItem(index: 3, icon: Icons.history),
           ],
         ),
       ),
@@ -326,6 +328,11 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
             MaterialPageRoute(builder: (_) => const SchedulePage()),
           );
         } else if (index == 2) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ChatListPage()),
+          );
+        } else if (index == 3) {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const HistoryPage()),

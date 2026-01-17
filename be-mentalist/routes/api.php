@@ -54,6 +54,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/complete', [BookingController::class, 'complete']);
     });
 
+    // Chat
+    Route::prefix('chats')->group(function () {
+        Route::get('/', [\App\Http\Controllers\ChatController::class, 'index']);
+        Route::get('/{bookingId}/messages', [\App\Http\Controllers\ChatController::class, 'messages']);
+        Route::post('/{bookingId}/messages', [\App\Http\Controllers\ChatController::class, 'sendMessage']);
+    });
+
     // Admin routes (admin role only)
     Route::middleware(\App\Http\Middleware\IsAdmin::class)->prefix('admin')->group(function () {
         Route::get('/counselors', [\App\Http\Controllers\AdminController::class, 'getAllCounselors']);

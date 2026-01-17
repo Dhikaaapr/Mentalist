@@ -10,6 +10,7 @@ import 'notification_page.dart';
 import '../services/booking_api_service.dart';
 import '../services/api_service.dart';
 import 'package:intl/intl.dart';
+import 'chat_list_page.dart';
 
 class UserDashboardPage extends StatefulWidget {
   final String userName;
@@ -33,6 +34,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   late final List<Widget> pages = [
     HomeView(name: widget.userName, photo: widget.userPhotoUrl),
     const SchedulePage(),
+    const ChatListPage(),
     const ProfilePage(),
   ];
 
@@ -60,11 +62,12 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         ],
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _navItem(Icons.home_rounded, 0, "Home"),
           _navItem(Icons.calendar_month_rounded, 1, "Schedule"),
-          _navItem(Icons.person_rounded, 2, "Profile"),
+          _navItem(Icons.chat_bubble_rounded, 2, "Chat"),
+          _navItem(Icons.person_rounded, 3, "Profile"),
         ],
       ),
     );
