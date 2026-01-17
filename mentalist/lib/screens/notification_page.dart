@@ -1,40 +1,33 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
-class NotificationPage extends StatelessWidget {
+class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
 
-  final List<Map<String, String>> notifications = const [
-    {
-      "title": "Your counseling session is coming",
-      "time": "10 minutes ago",
-      "icon": "calendar",
-    },
-    {
-      "title": "New mental health tips available",
-      "time": "1 hour ago",
-      "icon": "info",
-    },
-    {
-      "title": "Don't forget to update your mood today",
-      "time": "Today",
-      "icon": "mood",
-    },
-    {"title": "Weekly report ready", "time": "Yesterday", "icon": "report"},
-  ];
+  @override
+  State<NotificationPage> createState() => _NotificationPageState();
+}
 
-  IconData _getIcon(String name) {
-    switch (name) {
-      case "calendar":
-        return Icons.calendar_month_rounded;
-      case "info":
-        return Icons.info_rounded;
-      case "mood":
-        return Icons.sentiment_satisfied_alt_rounded;
-      case "report":
-        return Icons.bar_chart_rounded;
-      default:
-        return Icons.notifications_rounded;
+class _NotificationPageState extends State<NotificationPage> {
+  late Future<Map<String, dynamic>> _notificationsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  void _loadNotifications() {
+    setState(() {
+      _notificationsFuture = ApiService.fetchNotifications();
+    });
+  }
+
+  IconData _getIcon(String type) {
+    if (type.contains("booking") || type.contains("session")) {
+      return Icons.calendar_month_rounded;
     }
+    return Icons.notifications_rounded;
   }
 
   @override
@@ -53,60 +46,114 @@ class NotificationPage extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _notificationsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-        itemCount: notifications.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final item = notifications[index];
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
 
-          return Container(
+          final data = snapshot.data;
+          if (data == null || data['success'] != true) {
+            return const Center(child: Text("Gagal memuat notifikasi"));
+          }
+
+          final List<dynamic> notifications = data['data'] ?? [];
+
+          if (notifications.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                   Icon(Icons.notifications_off_outlined, size: 60, color: Colors.grey),
+                   SizedBox(height: 16),
+                   Text("Tidak ada notifikasi", style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          return ListView.separated(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  _getIcon(item["icon"] ?? ""),
-                  color: const Color(0xFF4589FF),
-                  size: 30,
-                ),
-                const SizedBox(width: 14),
+            itemCount: notifications.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final item = notifications[index];
+              final data = item['data'] ?? {};
+              // Parse time from created_at or use passed time if available
+              // Assuming 'created_at' is standard ISO string
+              String timeStr = "Baru saja";
+              if (item['created_at'] != null) {
+                // Simple parsing or use timeago package if available
+                final date = DateTime.tryParse(item['created_at']);
+                 if(date != null) {
+                   timeStr = "${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}";
+                 }
+              }
 
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item["title"]!,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item["time"]!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _getIcon(item['type'] ?? ""),
+                      color: const Color(0xFF4589FF),
+                      size: 30,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            data['title'] ?? "Notifikasi",
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (data['subtitle'] != null) ...[
+                             const SizedBox(height: 4),
+                             Text(
+                              data['subtitle'],
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 4),
+                          Text(
+                            timeStr,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           );
         },
       ),

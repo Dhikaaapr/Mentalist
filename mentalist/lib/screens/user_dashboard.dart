@@ -8,6 +8,7 @@ import 'history_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_page.dart';
 import '../services/booking_api_service.dart';
+import '../services/api_service.dart';
 import 'package:intl/intl.dart';
 
 class UserDashboardPage extends StatefulWidget {
@@ -150,17 +151,33 @@ class _HomeViewState extends State<HomeView> {
   List<Color> weeklyColors = List.generate(7, (_) => Colors.grey.shade300);
   Map<String, dynamic>? latestBooking;
   bool isBookingLoading = true;
+  String currentUserName = "User"; // Default
+  String? currentUserPhoto;
+
+  void _loadUserProfile() async {
+    final result = await ApiService.getProfile();
+    if (result != null && result['success'] == true) {
+      if (mounted) {
+        setState(() {
+          currentUserName = result['data']['name'] ?? "User";
+          currentUserPhoto = result['data']['picture']; // Assuming 'picture' field
+        });
+      }
+    }
+  }
 
   void _loadLatestBooking() async {
     setState(() => isBookingLoading = true);
     final result = await BookingApiService.getLatestConfirmedBooking();
     if (result != null && result['success'] == true) {
-      setState(() {
-        latestBooking = result['data'];
-        isBookingLoading = false;
-      });
+      if (mounted) { // Check mounted
+          setState(() {
+            latestBooking = result['data'];
+            isBookingLoading = false;
+          });
+      }
     } else {
-      setState(() => isBookingLoading = false);
+      if (mounted) setState(() => isBookingLoading = false);
     }
   }
 
@@ -267,8 +284,12 @@ class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
+    currentUserName = widget.name;
+    currentUserPhoto = widget.photo;
+    
     _loadWeeklyMood();
     _loadLatestBooking();
+    _loadUserProfile(); // Load profile data
   }
 
   @override
@@ -295,12 +316,24 @@ class _HomeViewState extends State<HomeView> {
                           : null,
                     ),
                     const SizedBox(width: 10),
-                    const Text(
-                      "Mentalist",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Hi,",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          currentUserName, // Dynamic Name
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -519,7 +552,10 @@ class _HomeViewState extends State<HomeView> {
                               height: 65,
                               width: 65,
                               color: Colors.white24,
-                              child: const Icon(Icons.person, color: Colors.white),
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                              ),
                             ),
                     ),
 
@@ -541,7 +577,9 @@ class _HomeViewState extends State<HomeView> {
                           const SizedBox(height: 4),
                           Text(
                             DateFormat('EEEE, h:mm a').format(
-                              DateTime.parse(latestBooking!['scheduled_at']).toLocal(),
+                              DateTime.parse(
+                                latestBooking!['scheduled_at'],
+                              ).toLocal(),
                             ),
                             style: const TextStyle(
                               fontSize: 14,
@@ -579,11 +617,18 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.calendar_today_outlined, color: Colors.grey.shade400, size: 32),
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      color: Colors.grey.shade400,
+                      size: 32,
+                    ),
                     const SizedBox(height: 10),
                     const Text(
                       "No upcoming session",
-                      style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     TextButton(
@@ -591,7 +636,9 @@ class _HomeViewState extends State<HomeView> {
                         // Navigate to find counselor
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const CounselorPage()),
+                          MaterialPageRoute(
+                            builder: (_) => const CounselorPage(),
+                          ),
                         );
                       },
                       child: const Text("Find a counselor"),

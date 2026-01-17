@@ -14,17 +14,23 @@ class CounselorProfileController extends Controller
      */
     public function getAvailableCounselors(): JsonResponse
     {
-        $counselorRole = Role::where('name', 'konselor')->first();
+        $counselorRoles = Role::whereIn('name', ['konselor', 'counselor'])->get();
 
-        if (!$counselorRole) {
+        if ($counselorRoles->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Role konselor tidak ditemukan',
             ], 500);
         }
 
-        $counselors = User::where('role_id', $counselorRole->id)
-            ->whereHas('counselorProfile')
+        $roleIds = $counselorRoles->pluck('id');
+
+        $counselors = User::whereIn('role_id', $roleIds)
+            ->whereHas('counselorProfile', function ($query) {
+                // Hanya ambil counselor yang statusnya aktif (is_active = true)
+                // Jika ingin filter yang sedang menerima pasien juga bisa tambah conditions di sini
+                $query->where('is_active', true);
+            })
             ->with('counselorProfile')
             ->get()
             ->map(function ($user) {

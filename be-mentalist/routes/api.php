@@ -30,6 +30,9 @@ Route::prefix('auth')->group(function () {
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
+    // Notifications
+    Route::get('/notifications', [AuthController::class, 'notifications']);
+
     // User profile
     Route::get('/user', [AuthController::class, 'profile']);
     Route::post('/user', [AuthController::class, 'updateProfile']);

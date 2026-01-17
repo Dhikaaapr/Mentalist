@@ -299,4 +299,21 @@ class AuthService
             'message' => 'Logout berhasil'
         ];
     }
+
+    /**
+     * Get user notifications.
+     */
+    public function getNotifications(string $userId): array
+    {
+        $user = \App\Models\User::find($userId);
+
+        if (!$user) {
+            return ['success' => false, 'message' => 'User not found'];
+        }
+
+        return [
+            'success' => true,
+            'data' => $user->notifications
+        ];
+    }
 }

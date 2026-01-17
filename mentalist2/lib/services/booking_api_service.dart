@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class BookingApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
-  static const String baseUrl = 'http://10.114.159.43:8000/api';
+  static const String baseUrl = 'http://192.168.100.11:8000/api';
   static const Duration timeoutDuration = Duration(seconds: 30);
 
   /// GET BOOKINGS (for counselor - shows bookings assigned to them)

@@ -10,7 +10,7 @@ class ApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://10.114.159.43:8000/api';
+  static const String baseUrl = 'http://192.168.100.11:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -434,6 +434,103 @@ class ApiService {
       await prefs.remove('role');
 
       return {'success': true, 'message': 'Logout berhasil'};
+    }
+  }
+
+  /// -------------------------------
+  /// UPDATE USER PROFILE
+  /// -------------------------------
+  static Future<Map<String, dynamic>> updateProfile({
+    String? name,
+    String? phone,
+    String? birthDate,
+    String? address,
+    File? photo,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {'success': false, 'message': 'Belum login'};
+      }
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/user/update'), // Assuming this is the endpoint
+      );
+
+      request.headers.addAll({
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      });
+
+      if (name != null) request.fields['name'] = name;
+      if (phone != null) request.fields['phone'] = phone;
+      if (birthDate != null) request.fields['birth_date'] = birthDate;
+      if (address != null) request.fields['address'] = address;
+      
+      // Handle method spoofing for Laravel PUT if needed, but using POST for multipart is safer usually.
+      // Or if backend expects PUT:
+      // request.fields['_method'] = 'PUT';
+
+      if (photo != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'photo',
+          photo.path,
+        ));
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      AppLogger.info('📡 [USER] Update Profile Status: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'message': 'Profil berhasil diperbarui', 'data': data['data']};
+      }
+
+       if (response.statusCode == 422) {
+         final data = json.decode(response.body);
+         return {'success': false, 'message': data['message'] ?? 'Validasi gagal'};
+       }
+
+      return {'success': false, 'message': 'Gagal memperbarui profil'};
+    } catch (e) {
+      AppLogger.error('[USER] Update profile error: $e');
+      return {'success': false, 'message': 'Terjadi kesalahan'};
+    }
+  }
+
+  /// -------------------------------
+  /// FETCH NOTIFICATIONS (STATIC)
+  /// -------------------------------
+  static Future<Map<String, dynamic>> fetchNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {'success': false, 'message': 'Belum login'};
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/notifications'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'data': json.decode(response.body)['data']};
+      }
+
+      return {'success': false, 'message': 'Gagal mengambil notifikasi'};
+    } catch (e) {
+      AppLogger.error('[USER] Get notifications error: $e');
+      return {'success': false, 'message': 'Terjadi kesalahan'};
     }
   }
 }

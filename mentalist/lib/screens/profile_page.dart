@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../services/api_service.dart';
 import '../auth/login_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -34,17 +35,62 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    _nameController = TextEditingController(text: "");
+    _emailController = TextEditingController(text: "");
+    _loadProfile();
+  }
 
-    _nameController = TextEditingController(text: widget.userName ?? "User");
-    _emailController = TextEditingController(
-      text: widget.userEmail ?? "email@example.com",
+  void _loadProfile() async {
+    final result = await ApiService.getProfile();
+    if (result != null && result['success'] == true) {
+      if (mounted) {
+        final data = result['data'];
+        setState(() {
+          _nameController.text = data['name'] ?? "";
+          _emailController.text = data['email'] ?? "";
+          _phoneController.text = data['phone'] ?? "";
+          _birthController.text = data['birth_date'] ?? "";
+          _addressController.text = data['address'] ?? "";
+        });
+      }
+    }
+  }
+
+  void _saveProfile() async {
+    setState(() => _isEditing = false); // Disable editing immediately or show loading
+
+    // Show loading indicator usually, but for simplicity:
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Menyimpan perubahan...")),
     );
+
+    final result = await ApiService.updateProfile(
+      name: _nameController.text,
+      phone: _phoneController.text,
+      birthDate: _birthController.text,
+      address: _addressController.text,
+      // photo: ... (handle photo if needed later)
+    );
+
+    if (mounted) {
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profil berhasil diperbarui! 🎉")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal update: ${result['message']}")),
+        );
+        setState(() => _isEditing = true); // Re-enable if failed
+      }
+    }
   }
 
   /// 🔥 Logout Function
   Future<void> _logout() async {
     try {
       await _googleSignIn.signOut();
+      await ApiService.logout(); // Call backend logout
 
       if (!mounted) return;
 
@@ -70,7 +116,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  CircleAvatar(
+                   CircleAvatar(
                     radius: 60,
                     backgroundColor: Colors.blue.shade100,
                     backgroundImage: widget.userPhoto != null
@@ -122,18 +168,13 @@ class _ProfilePageState extends State<ProfilePage> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  setState(() {
-                    if (_isEditing) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Perubahan profil berhasil disimpan 🎉",
-                          ),
-                        ),
-                      );
-                    }
-                    _isEditing = !_isEditing;
-                  });
+                  if (_isEditing) {
+                    _saveProfile();
+                  } else {
+                    setState(() {
+                      _isEditing = true;
+                    });
+                  }
                 },
                 icon: Icon(_isEditing ? Icons.save : Icons.edit),
                 label: Text(_isEditing ? "Simpan Perubahan" : "Edit Profil"),
@@ -183,7 +224,7 @@ class _ProfilePageState extends State<ProfilePage> {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07), // << FIXED WARNING
+            color: Colors.black.withValues(alpha: 0.07),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -201,6 +242,7 @@ class _ProfilePageState extends State<ProfilePage> {
             icon: Icons.email,
             label: "Email",
             controller: _emailController,
+            enabled: false, // Email biasanya tidak bisa diedit sembarangan
           ),
           const Divider(),
           _buildField(
@@ -230,11 +272,12 @@ class _ProfilePageState extends State<ProfilePage> {
     required IconData icon,
     required String label,
     required TextEditingController controller,
+    bool enabled = true,
   }) {
     return ListTile(
       leading: Icon(icon, color: Colors.blueAccent),
       title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-      subtitle: _isEditing
+      subtitle: (_isEditing && enabled)
           ? TextField(
               controller: controller,
               decoration: const InputDecoration(

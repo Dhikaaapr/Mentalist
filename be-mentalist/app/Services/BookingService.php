@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\User;
 use App\Models\Role;
 use App\Notifications\NewBookingNotification;
+use App\Notifications\BookingConfirmedNotification;
 
 class BookingService
 {
@@ -202,6 +203,11 @@ class BookingService
         }
 
         $booking->update(['status' => 'confirmed']);
+
+        // Notify user if exists
+        if ($booking->user) {
+            $booking->user->notify(new BookingConfirmedNotification($booking));
+        }
 
         return [
             'success' => true,

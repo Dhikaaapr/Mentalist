@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CounselorApiService {
-  static const String baseUrl = 'http://10.114.159.43:8000/api';
+  static const String baseUrl = 'http://192.168.100.11:8000/api';
 
   /// =========================
   /// GET LIST COUNSELORS
@@ -37,7 +37,7 @@ class CounselorApiService {
     String date,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
+    final token = prefs.getString('accessToken');
 
     final response = await http.get(
       Uri.parse('$baseUrl/counselors/$counselorId/availability?date=$date'),

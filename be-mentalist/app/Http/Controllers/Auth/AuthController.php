@@ -159,4 +159,13 @@ class AuthController extends Controller
 
         return response()->json($result);
     }
+
+    /**
+     * Get user notifications.
+     */
+    public function notifications(Request $request): JsonResponse
+    {
+        $result = $this->authService->getNotifications($request->user()->id);
+        return response()->json($result);
+    }
 }

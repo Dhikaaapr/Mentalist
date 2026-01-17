@@ -9,7 +9,7 @@ class BookingApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://10.114.159.43:8000/api';
+  static const String baseUrl = 'http://192.168.100.11:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -268,11 +268,11 @@ class BookingApiService {
         };
       }
 
-      AppLogger.info(
-        '📡 [BOOKING] Reschedule → $baseUrl/bookings/$id/reschedule',
-      );
+      AppLogger.info('📡 [BOOKING] Reschedule → $baseUrl/bookings/$id/reschedule');
 
-      final body = {'scheduled_at': newScheduledAt.toUtc().toIso8601String()};
+      final body = {
+        'scheduled_at': newScheduledAt.toUtc().toIso8601String(),
+      };
 
       final response = await http
           .post(
@@ -309,25 +309,47 @@ class BookingApiService {
       return {'success': false, 'message': 'Terjadi kesalahan'};
     }
   }
+
   /// -------------------------------
   /// GET LATEST CONFIRMED BOOKING
   /// -------------------------------
   static Future<Map<String, dynamic>?> getLatestConfirmedBooking() async {
     try {
-      final result = await getBookings(status: 'confirmed');
+      final bookingsResult = await getBookings(status: 'confirmed');
 
-      if (result != null && result['success'] == true) {
-        final List bookings = result['data'] ?? [];
-        if (bookings.isNotEmpty) {
-          // Return the most recent one (it should be sorted by scheduled_at desc already in backend)
-          return {'success': true, 'data': bookings.first};
-        }
+      if (bookingsResult == null || bookingsResult['success'] != true) {
+        return null;
+      }
+
+      List<dynamic> bookings = bookingsResult['data'];
+
+      if (bookings.isEmpty) {
         return {'success': true, 'data': null};
       }
-      return result;
+
+      // Filter upcoming only (now or future)
+      final now = DateTime.now();
+      List<dynamic> upcomingBookings = bookings.where((b) {
+        final scheduledAt = DateTime.parse(b['scheduled_at']);
+        return scheduledAt.isAfter(now) ||
+            scheduledAt.isAtSameMomentAs(now);
+      }).toList();
+
+      if (upcomingBookings.isEmpty) {
+        return {'success': true, 'data': null};
+      }
+
+      // Sort nearest first
+      upcomingBookings.sort((a, b) {
+        final dateA = DateTime.parse(a['scheduled_at']);
+        final dateB = DateTime.parse(b['scheduled_at']);
+        return dateA.compareTo(dateB);
+      });
+
+      return {'success': true, 'data': upcomingBookings.first};
     } catch (e) {
-      AppLogger.error('[BOOKING] Error getting latest confirmed: $e');
-      return {'success': false, 'message': 'Terjadi kesalahan'};
+      AppLogger.error('[BOOKING] Get latest error: $e');
+      return {'success': false, 'message': 'Gagal mengambil jadwal terbaru'};
     }
   }
 }
