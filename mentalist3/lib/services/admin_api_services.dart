@@ -10,7 +10,7 @@ class AdminApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://192.168.100.11:8000/api';
+  static const String baseUrl = 'http://10.0.60.110:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -182,7 +182,9 @@ class AdminApiService {
         };
       }
 
-      AppLogger.info('📡 [ADMIN] Get all counselors → $baseUrl/admin/counselors');
+      AppLogger.info(
+        '📡 [ADMIN] Get all counselors → $baseUrl/admin/counselors',
+      );
 
       final response = await http
           .get(
@@ -261,7 +263,9 @@ class AdminApiService {
   /// -------------------------------
   /// TOGGLE COUNSELOR STATUS
   /// -------------------------------
-  static Future<Map<String, dynamic>> toggleCounselorStatus(String counselorId) async {
+  static Future<Map<String, dynamic>> toggleCounselorStatus(
+    String counselorId,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
@@ -274,7 +278,9 @@ class AdminApiService {
         };
       }
 
-      AppLogger.info('📡 [ADMIN] Toggle counselor status → $baseUrl/admin/counselors/$counselorId/toggle-status');
+      AppLogger.info(
+        '📡 [ADMIN] Toggle counselor status → $baseUrl/admin/counselors/$counselorId/toggle-status',
+      );
 
       final response = await http
           .post(
@@ -459,7 +465,9 @@ class AdminApiService {
         };
       }
 
-      AppLogger.info('📡 [ADMIN] Toggle user status → $baseUrl/admin/users/$userId/toggle-status');
+      AppLogger.info(
+        '📡 [ADMIN] Toggle user status → $baseUrl/admin/users/$userId/toggle-status',
+      );
 
       final response = await http
           .post(
@@ -527,7 +535,7 @@ class AdminApiService {
         'error': 'network_error',
       };
     } catch (e) {
-      AppLogger.error('[ADMIN] Error: $e');  
+      AppLogger.error('[ADMIN] Error: $e');
       return {
         'success': false,
         'message': 'Terjadi kesalahan',
@@ -552,7 +560,9 @@ class AdminApiService {
         };
       }
 
-      AppLogger.info('📡 [ADMIN] Get report stats → $baseUrl/admin/reports/stats');
+      AppLogger.info(
+        '📡 [ADMIN] Get report stats → $baseUrl/admin/reports/stats',
+      );
 
       final response = await http
           .get(
@@ -570,7 +580,7 @@ class AdminApiService {
           );
 
       AppLogger.info('📡 [ADMIN] Status: ${response.statusCode}');
-      
+
       if (response.statusCode == 200) {
         return {'success': true, ...json.decode(response.body)};
       }
@@ -606,15 +616,19 @@ class AdminApiService {
         };
       }
 
-      AppLogger.info('📡 [ADMIN] Get notifications → $baseUrl/admin/notifications');
+      AppLogger.info(
+        '📡 [ADMIN] Get notifications → $baseUrl/admin/notifications',
+      );
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/admin/notifications'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/notifications'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
 
       AppLogger.info('📡 [ADMIN] Status: ${response.statusCode}');
 
@@ -622,36 +636,36 @@ class AdminApiService {
         return {'success': true, ...json.decode(response.body)};
       }
 
-      return {
-        'success': false,
-        'message': 'Gagal mengambil notifikasi',
-      };
+      return {'success': false, 'message': 'Gagal mengambil notifikasi'};
     } catch (e) {
       AppLogger.error('[ADMIN] Error notifications: $e');
-      return {
-        'success': false,
-        'message': 'Terjadi kesalahan jaringan',
-      };
+      return {'success': false, 'message': 'Terjadi kesalahan jaringan'};
     }
   }
 
   /// -------------------------------
   /// MARK NOTIFICATION AS READ
   /// -------------------------------
-  static Future<Map<String, dynamic>> markNotificationAsRead(String notificationId) async {
+  static Future<Map<String, dynamic>> markNotificationAsRead(
+    String notificationId,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
 
-      AppLogger.info('📡 [ADMIN] Mark read → $baseUrl/admin/notifications/$notificationId/read');
+      AppLogger.info(
+        '📡 [ADMIN] Mark read → $baseUrl/admin/notifications/$notificationId/read',
+      );
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/admin/notifications/$notificationId/read'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/admin/notifications/$notificationId/read'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return {'success': true, ...json.decode(response.body)};
@@ -671,13 +685,15 @@ class AdminApiService {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/admin/schedules/pending'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/schedules/pending'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return {'success': true, ...json.decode(response.body)};
@@ -696,13 +712,15 @@ class AdminApiService {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/admin/schedules/$id/approve'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/admin/schedules/$id/approve'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return {'success': true, ...json.decode(response.body)};
@@ -716,20 +734,25 @@ class AdminApiService {
   /// -------------------------------
   /// REJECT SCHEDULE
   /// -------------------------------
-  static Future<Map<String, dynamic>> rejectSchedule(String id, String reason) async {
+  static Future<Map<String, dynamic>> rejectSchedule(
+    String id,
+    String reason,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/admin/schedules/$id/reject'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({'admin_notes': reason}),
-      ).timeout(timeoutDuration);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/admin/schedules/$id/reject'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: json.encode({'admin_notes': reason}),
+          )
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return {'success': true, ...json.decode(response.body)};
@@ -743,18 +766,23 @@ class AdminApiService {
   /// -------------------------------
   /// GET PENDING WEEKLY SCHEDULES
   /// -------------------------------
-  static Future<Map<String, dynamic>> getPendingWeeklySchedules() async {
+  /// -------------------------------
+  /// GET PENDING WEEKLY SCHEDULES (New Flow)
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getPendingWeeklyAvailability() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/admin/schedules/weekly/pending'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/weekly-availability/pending'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return {'success': true, ...json.decode(response.body)};
@@ -766,20 +794,26 @@ class AdminApiService {
   }
 
   /// -------------------------------
-  /// APPROVE WEEKLY SCHEDULE
+  /// APPROVE WEEKLY SCHEDULE (New Flow)
   /// -------------------------------
-  static Future<Map<String, dynamic>> approveWeeklySchedule(String id) async {
+  static Future<Map<String, dynamic>> approveWeeklySchedule(
+    String counselorId,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/admin/schedules/weekly/$id/approve'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      final response = await http
+          .post(
+            Uri.parse(
+              '$baseUrl/admin/weekly-availability/$counselorId/approve',
+            ),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return {'success': true, ...json.decode(response.body)};
@@ -791,22 +825,27 @@ class AdminApiService {
   }
 
   /// -------------------------------
-  /// REJECT WEEKLY SCHEDULE
+  /// REJECT WEEKLY SCHEDULE (New Flow)
   /// -------------------------------
-  static Future<Map<String, dynamic>> rejectWeeklySchedule(String id, String reason) async {
+  static Future<Map<String, dynamic>> rejectWeeklySchedule(
+    String counselorId,
+    String reason,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/admin/schedules/weekly/$id/reject'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({'admin_notes': reason}),
-      ).timeout(timeoutDuration);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/admin/weekly-availability/$counselorId/reject'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: json.encode({'reason': reason}),
+          )
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         return {'success': true, ...json.decode(response.body)};

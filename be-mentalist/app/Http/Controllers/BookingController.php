@@ -23,7 +23,7 @@ class BookingController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'counselor_id' => 'required|uuid',
-            'scheduled_at' => 'required|date|after:now',
+            'slot_id' => 'required|uuid|exists:available_time_slots,id',
             'notes' => 'nullable|string|max:1000',
         ]);
 

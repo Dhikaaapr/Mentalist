@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../services/booking_api_service.dart';
+import '../services/counselor_api_service.dart';
 
 class CounselorDetailPage extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -15,38 +16,54 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   String? _selectedTime;
+  String? _selectedSlotId; // Store the selected slot ID
   bool _isBooking = false;
+  bool _isLoadingSlots = false;
 
-  final List<String> _timeSlots = [
-    "09:00",
-    "10:00",
-    "11:00",
-    "14:00",
-    "15:00",
-    "16:00",
-  ];
+  List<dynamic> _availableSlots = []; // Dynamic slots from API
+
+  // Fetch slots when a day is selected
+  Future<void> _fetchSlots(DateTime date) async {
+    setState(() {
+      _isLoadingSlots = true;
+      _availableSlots = [];
+      _selectedTime = null;
+      _selectedSlotId = null;
+    });
+
+    try {
+      final dateString = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+      final slots = await CounselorApiService.getAvailability(
+        widget.data['id'],
+        dateString,
+      );
+
+      if (mounted) {
+        setState(() {
+          _availableSlots = slots;
+          _isLoadingSlots = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingSlots = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal memuat jadwal: $e")),
+        );
+      }
+    }
+  }
 
   Future<void> _bookConsultation() async {
-    if (_selectedDay == null || _selectedTime == null) return;
+    if (_selectedSlotId == null) return;
 
     setState(() => _isBooking = true);
 
-    // Parse time and combine with date
-    final timeParts = _selectedTime!.split(':');
-    final hour = int.parse(timeParts[0]);
-    final minute = int.parse(timeParts[1]);
-
-    final scheduledAt = DateTime(
-      _selectedDay!.year,
-      _selectedDay!.month,
-      _selectedDay!.day,
-      hour,
-      minute,
-    );
-
     final result = await BookingApiService.createBooking(
       counselorId: widget.data['id'],
-      scheduledAt: scheduledAt,
+      slotId: _selectedSlotId!,
     );
 
     setState(() => _isBooking = false);
@@ -213,11 +230,13 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
 
             onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-                _selectedTime = null;
-              });
+              if (!isSameDay(_selectedDay, selectedDay)) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
+                _fetchSlots(selectedDay);
+              }
             },
 
             headerStyle: const HeaderStyle(
@@ -269,42 +288,62 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
           ),
           const SizedBox(height: 12),
 
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _timeSlots.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 2.5,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemBuilder: (context, index) {
-              final time = _timeSlots[index];
-              final isSelected = _selectedTime == time;
+          _isLoadingSlots
+              ? const Center(child: CircularProgressIndicator())
+              : _availableSlots.isEmpty
+                  ? Center(
+                      child: Text(
+                        _selectedDay == null
+                            ? "Pilih tanggal terlebih dahulu"
+                            : "Tidak ada jadwal tersedia",
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    )
+                  : GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _availableSlots.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 2.5,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final slot = _availableSlots[index];
+                        final time = slot['time'];
+                        final id = slot['id'];
+                        final isSelected = _selectedSlotId == id;
 
-              return GestureDetector(
-                onTap: _selectedDay == null
-                    ? null
-                    : () => setState(() => _selectedTime = time),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isSelected ? primaryColor : Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    time,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.black87,
-                      fontWeight: FontWeight.w600,
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedSlotId = id;
+                              _selectedTime = time;
+                            });
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? primaryColor
+                                  : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              time,
+                              style: TextStyle(
+                                color:
+                                    isSelected ? Colors.white : Colors.black87,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
 
           const SizedBox(height: 32),
 
@@ -314,9 +353,7 @@ class _CounselorDetailPageState extends State<CounselorDetailPage> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: (_selectedDay == null ||
-                        _selectedTime == null ||
-                        _isBooking)
+                onPressed: (_selectedSlotId == null || _isBooking)
                     ? null
                     : _bookConsultation,
                 style: ElevatedButton.styleFrom(

@@ -67,10 +67,21 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         }
       } else if (mounted) {
         setState(() => isLoading = false);
+        // Show error message
+        if (showLoading && result['message'] != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'])),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() => isLoading = false);
+        if (showLoading) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
       }
     }
   }

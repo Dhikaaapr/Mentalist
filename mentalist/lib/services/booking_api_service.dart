@@ -18,7 +18,7 @@ class BookingApiService {
   /// -------------------------------
   static Future<Map<String, dynamic>?> createBooking({
     required String counselorId,
-    required DateTime scheduledAt,
+    required String slotId,
     String? notes,
   }) async {
     try {
@@ -37,7 +37,7 @@ class BookingApiService {
 
       final body = {
         'counselor_id': counselorId,
-        'scheduled_at': scheduledAt.toUtc().toIso8601String(),
+        'slot_id': slotId,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
       };
 

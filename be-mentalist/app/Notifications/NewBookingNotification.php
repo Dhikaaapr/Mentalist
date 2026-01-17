@@ -40,8 +40,8 @@ class NewBookingNotification extends Notification
             'type' => 'new_booking',
             'title' => 'New Session Booked',
             'subtitle' => 'A new session has been booked by ' . ($this->booking->user->name ?? 'a patient'),
-            'time' => $this->booking->scheduled_at->format('H:i'),
-            'date' => $this->booking->scheduled_at->format('Y-m-d'),
+            'time' => \Carbon\Carbon::parse($this->booking->booking_time)->format('H:i'),
+            'date' => $this->booking->booking_date->format('Y-m-d'),
             'booking_id' => $this->booking->id,
             'patient_name' => $this->booking->user->name ?? 'Unknown',
         ];

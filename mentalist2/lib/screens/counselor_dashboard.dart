@@ -6,6 +6,7 @@ import 'counselor_list_page.dart';
 import 'history_page.dart';
 import 'notification_page.dart';
 import 'chat_list_page.dart';
+import 'weekly_schedule_setup_page.dart';
 import '../services/counselor_api_service.dart';
 import '../utils/logger.dart';
 
@@ -33,6 +34,29 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
   @override
   void initState() {
     super.initState();
+    _checkWeeklySetupAndLoadData();
+  }
+
+  Future<void> _checkWeeklySetupAndLoadData() async {
+    if (!mounted) return;
+
+    // Check if weekly availability is already set up
+    final setupResult = await CounselorApiService.hasWeeklySetup();
+    
+    if (!mounted) return;
+
+    if (setupResult['has_setup'] != true) {
+      // Redirect to weekly setup page
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const WeeklyScheduleSetupPage()),
+      );
+
+      // If setup was not completed, user might have pressed back
+      // We still load dashboard data
+    }
+
+    // Continue loading dashboard data
     _loadDashboardData();
   }
 

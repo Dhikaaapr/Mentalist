@@ -17,7 +17,7 @@ class CounselorApiService {
     }
 
     final response = await http.get(
-      Uri.parse('$baseUrl/counselors/available'),
+      Uri.parse('$baseUrl/counselors/approved'),
       headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
 
@@ -32,7 +32,7 @@ class CounselorApiService {
   /// =========================
   /// GET AVAILABILITY COUNSELOR
   /// =========================
-  static Future<List<String>> getAvailability(
+  static Future<List<dynamic>> getAvailability(
     String counselorId,
     String date,
   ) async {
@@ -40,13 +40,14 @@ class CounselorApiService {
     final token = prefs.getString('accessToken');
 
     final response = await http.get(
-      Uri.parse('$baseUrl/counselors/$counselorId/availability?date=$date'),
+      Uri.parse('$baseUrl/counselors/$counselorId/slots?date=$date'),
       headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
     );
 
     if (response.statusCode == 200) {
       final body = json.decode(response.body);
-      return List<String>.from(body['slots'] ?? []);
+      // Returns list of {id, time}
+      return body['data'] ?? [];
     } else {
       throw Exception('Gagal mengambil jadwal');
     }

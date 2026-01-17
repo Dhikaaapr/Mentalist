@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\CounselorProfileController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\CounselorAvailabilityController;
 
 /*
 |--------------------------------------------------------------------------
@@ -84,6 +85,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/schedules/weekly/pending', [\App\Http\Controllers\CounselorScheduleController::class, 'getPendingWeeklySchedules']);
         Route::post('/schedules/weekly/{id}/approve', [\App\Http\Controllers\CounselorScheduleController::class, 'approveWeekly']);
         Route::post('/schedules/weekly/{id}/reject', [\App\Http\Controllers\CounselorScheduleController::class, 'rejectWeekly']);
+
+        // Admin Weekly Availability Approval (new flow)
+        Route::get('/weekly-availability/pending', [CounselorAvailabilityController::class, 'getPendingSchedules']);
+        Route::post('/weekly-availability/{counselorId}/approve', [CounselorAvailabilityController::class, 'approveSchedules']);
+        Route::post('/weekly-availability/{counselorId}/reject', [CounselorAvailabilityController::class, 'rejectSchedules']);
     });
 
     // Counselor routes
@@ -98,5 +104,14 @@ Route::middleware('auth:sanctum')->group(function () {
         // Counselor Notifications
         Route::get('/notifications', [\App\Http\Controllers\CounselorController::class, 'getNotifications']);
         Route::post('/notifications/{id}/read', [\App\Http\Controllers\CounselorController::class, 'markAsRead']);
+
+        // Counselor Weekly Availability (first-time setup)
+        Route::get('/weekly-availability/check', [CounselorAvailabilityController::class, 'hasWeeklySetup']);
+        Route::get('/weekly-availability', [CounselorAvailabilityController::class, 'getWeeklyAvailability']);
+        Route::post('/weekly-availability', [CounselorAvailabilityController::class, 'saveWeeklyAvailability']);
     });
+
+    // Public: Get available slots for a counselor
+    Route::get('/counselors/{counselorId}/slots', [CounselorAvailabilityController::class, 'getAvailableSlots']);
+    Route::get('/counselors/approved', [CounselorAvailabilityController::class, 'getApprovedCounselors']);
 });

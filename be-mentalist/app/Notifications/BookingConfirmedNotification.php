@@ -27,8 +27,8 @@ class BookingConfirmedNotification extends Notification
             'type' => 'booking_confirmed',
             'title' => 'Booking Confirmed! ✅',
             'subtitle' => 'Your session with ' . ($this->booking->counselor?->name ?? 'counselor') . ' has been confirmed.',
-            'time' => $this->booking->scheduled_at->format('H:i'),
-            'date' => $this->booking->scheduled_at->format('Y-m-d'),
+            'time' => \Carbon\Carbon::parse($this->booking->booking_time)->format('H:i'),
+            'date' => $this->booking->booking_date->format('Y-m-d'),
             'booking_id' => $this->booking->id,
             'counselor_name' => $this->booking->counselor?->name ?? 'Counselor',
         ];

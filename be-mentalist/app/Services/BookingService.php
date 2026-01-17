@@ -13,49 +13,82 @@ class BookingService
     /**
      * Create a new booking.
      */
+    /**
+     * Create a new booking.
+     */
     public function createBooking(string $userId, array $data): array
     {
-        // Check if counselor exists and is accepting patients
-        $counselor = User::with(['role', 'counselorProfile'])->find($data['counselor_id']);
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($userId, $data) {
+            // Check if counselor exists and is accepting patients
+            $counselor = User::with(['role', 'counselorProfile'])->find($data['counselor_id']);
 
-        if (!$counselor) {
+            if (!$counselor) {
+                return [
+                    'success' => false,
+                    'message' => 'Konselor tidak ditemukan',
+                ];
+            }
+
+            if ($counselor->role->name !== 'konselor') {
+                return [
+                    'success' => false,
+                    'message' => 'User yang dipilih bukan konselor',
+                ];
+            }
+
+            if (!$counselor->counselorProfile || !$counselor->counselorProfile->is_accepting_patients) {
+                return [
+                    'success' => false,
+                    'message' => 'Konselor sedang tidak menerima pasien',
+                ];
+            }
+
+            // Find and lock the slot
+            $slot = \App\Models\AvailableTimeSlot::where('id', $data['slot_id'])
+                ->lockForUpdate()
+                ->first();
+
+            if (!$slot) {
+                return [
+                    'success' => false,
+                    'message' => 'Slot waktu tidak ditemukan',
+                ];
+            }
+
+            if (!$slot->is_available) {
+                return [
+                    'success' => false,
+                    'message' => 'Slot waktu ini sudah tidak tersedia',
+                ];
+            }
+
+            // Mark slot as unavailable
+            $slot->update(['is_available' => false]);
+
+            // Get slot date and time for booking
+            $slotDate = $slot->slot_date;
+            $slotTime = $slot->slot_time;
+
+            // Create booking with booking_date and booking_time
+            $booking = Booking::create([
+                'user_id' => $userId,
+                'counselor_id' => $data['counselor_id'],
+                'slot_id' => $slot->id,
+                'booking_date' => $slotDate->format('Y-m-d'),
+                'booking_time' => $slotTime,
+                'notes' => $data['notes'] ?? null,
+                'status' => 'pending',
+            ]);
+
+            // Notify counselor
+            $counselor->notify(new NewBookingNotification($booking));
+
             return [
-                'success' => false,
-                'message' => 'Konselor tidak ditemukan',
+                'success' => true,
+                'message' => 'Booking berhasil dibuat',
+                'data' => $this->formatBooking($booking),
             ];
-        }
-
-        if ($counselor->role->name !== 'konselor') {
-            return [
-                'success' => false,
-                'message' => 'User yang dipilih bukan konselor',
-            ];
-        }
-
-        if (!$counselor->counselorProfile || !$counselor->counselorProfile->is_accepting_patients) {
-            return [
-                'success' => false,
-                'message' => 'Konselor sedang tidak menerima pasien',
-            ];
-        }
-
-        // Create booking
-        $booking = Booking::create([
-            'user_id' => $userId,
-            'counselor_id' => $data['counselor_id'],
-            'scheduled_at' => $data['scheduled_at'],
-            'notes' => $data['notes'] ?? null,
-            'status' => 'pending',
-        ]);
-
-        // Notify counselor
-        $counselor->notify(new NewBookingNotification($booking));
-
-        return [
-            'success' => true,
-            'message' => 'Booking berhasil dibuat',
-            'data' => $this->formatBooking($booking),
-        ];
+        });
     }
 
     public function getBookings(string $userId, ?string $status = null): array
@@ -76,7 +109,9 @@ class BookingService
             $query->where('status', $status);
         }
 
-        $bookings = $query->orderBy('scheduled_at', 'desc')->get();
+        $bookings = $query->orderBy('booking_date', 'desc')
+            ->orderBy('booking_time', 'desc')
+            ->get();
 
         return [
             'success' => true,
@@ -99,8 +134,8 @@ class BookingService
         }
 
         // Filter for today
-        $bookings = $query->whereDate('scheduled_at', now()->toDateString())
-            ->orderBy('scheduled_at', 'asc')
+        $bookings = $query->where('booking_date', now()->toDateString())
+            ->orderBy('booking_time', 'asc')
             ->get();
 
         return [
@@ -166,6 +201,12 @@ class BookingService
         }
 
         $booking->update(['status' => 'cancelled']);
+
+        // Restore slot availability
+        if ($booking->slot_id) {
+            \App\Models\AvailableTimeSlot::where('id', $booking->slot_id)
+                ->update(['is_available' => true]);
+        }
 
         return [
             'success' => true,
@@ -249,6 +290,12 @@ class BookingService
             'rejection_reason' => $reason,
         ]);
 
+        // Restore slot availability
+        if ($booking->slot_id) {
+            \App\Models\AvailableTimeSlot::where('id', $booking->slot_id)
+                ->update(['is_available' => true]);
+        }
+
         return [
             'success' => true,
             'message' => 'Booking berhasil ditolak',
@@ -285,8 +332,12 @@ class BookingService
             ];
         }
 
+        // Parse new schedule
+        $newDate = \Carbon\Carbon::parse($newSchedule);
+
         $booking->update([
-            'scheduled_at' => $newSchedule,
+            'booking_date' => $newDate->format('Y-m-d'),
+            'booking_time' => $newDate->format('H:i:s'),
             'status' => 'pending', // Reset to pending after reschedule
         ]);
 
@@ -341,9 +392,22 @@ class BookingService
     {
         $booking->load(['user', 'counselor']);
 
+        // Construct scheduled_at from booking_date and booking_time
+        $scheduledAt = null;
+        if ($booking->booking_date && $booking->booking_time) {
+            $date = $booking->booking_date instanceof \DateTime 
+                ? $booking->booking_date->format('Y-m-d') 
+                : $booking->booking_date;
+            $scheduledAt = \Carbon\Carbon::parse($date . ' ' . $booking->booking_time)->toIso8601String();
+        } elseif ($booking->scheduled_at) {
+            $scheduledAt = $booking->scheduled_at->toIso8601String();
+        }
+
         return [
             'id' => $booking->id,
-            'scheduled_at' => $booking->scheduled_at->toIso8601String(),
+            'scheduled_at' => $scheduledAt,
+            'booking_date' => $booking->booking_date ? \Carbon\Carbon::parse($booking->booking_date)->format('Y-m-d') : null,
+            'booking_time' => $booking->booking_time,
             'status' => $booking->status,
             'notes' => $booking->notes,
             'rejection_reason' => $booking->rejection_reason,

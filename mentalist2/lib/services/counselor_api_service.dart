@@ -273,4 +273,113 @@ class CounselorApiService {
       return {'success': false, 'message': 'Kesalahan jaringan'};
     }
   }
+
+  /// -------------------------------
+  /// CHECK IF WEEKLY SETUP DONE
+  /// -------------------------------
+  static Future<Map<String, dynamic>> hasWeeklySetup() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {'success': false, 'has_setup': false};
+      }
+
+      AppLogger.info('📡 [COUNSELOR] Check weekly setup → $baseUrl/counselor/weekly-availability/check');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/counselor/weekly-availability/check'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'has_setup': data['has_setup'] ?? false};
+      }
+      return {'success': false, 'has_setup': false};
+    } catch (e) {
+      AppLogger.error('[COUNSELOR] Error checking weekly setup: $e');
+      return {'success': false, 'has_setup': false};
+    }
+  }
+
+  /// -------------------------------
+  /// SAVE WEEKLY AVAILABILITY
+  /// -------------------------------
+  static Future<Map<String, dynamic>> saveWeeklyAvailability(List<Map<String, dynamic>> schedules) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {'success': false, 'message': 'Token tidak ditemukan'};
+      }
+
+      AppLogger.info('📡 [COUNSELOR] Save weekly availability → $baseUrl/counselor/weekly-availability');
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/counselor/weekly-availability'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({'schedules': schedules}),
+          )
+          .timeout(timeoutDuration);
+
+      AppLogger.info('📡 [COUNSELOR] Status: ${response.statusCode}');
+      AppLogger.debug('📬 [COUNSELOR] Body: ${response.body}');
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': data['message'], 'data': data['data']};
+      }
+
+      return {'success': false, 'message': data['message'] ?? 'Gagal menyimpan jadwal'};
+    } catch (e) {
+      AppLogger.error('[COUNSELOR] Error saving weekly availability: $e');
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
+
+  /// -------------------------------
+  /// GET WEEKLY AVAILABILITY
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getWeeklyAvailability() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {'success': false, 'message': 'Token tidak ditemukan'};
+      }
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/counselor/weekly-availability'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      }
+      return {'success': false, 'message': 'Gagal memuat jadwal'};
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
 }

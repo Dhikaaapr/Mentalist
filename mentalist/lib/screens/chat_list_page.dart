@@ -147,7 +147,7 @@ class _ChatListPageState extends State<ChatListPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => ChatRoomPage(
-                                    bookingId: chat['booking_id'],
+                                    bookingId: chat['booking_id'].toString(),
                                     counselorName: otherUser['name'] ?? 'Unknown',
                                     counselorPicture: otherUser['picture'],
                                   ),

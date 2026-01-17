@@ -24,14 +24,15 @@ class ChatController extends Controller
                       ->orWhere('counselor_id', $user->id);
             })
             ->with(['user', 'counselor', 'counselor.counselorProfile'])
-            ->orderBy('scheduled_at', 'desc')
+            ->orderBy('booking_date', 'desc')
+            ->orderBy('booking_time', 'desc')
             ->get();
 
         // Build conversation list
         $conversations = [];
         foreach ($confirmedBookings as $booking) {
             // Determine the other party in the conversation
-            $isUserClient = $booking->user_id === $user->id;
+            $isUserClient = $booking->user_id == $user->id;
             $otherUser = $isUserClient ? $booking->counselor : $booking->user;
 
             // Get last message for this booking
@@ -52,11 +53,11 @@ class ChatController extends Controller
                     'name' => $otherUser->name,
                     'picture' => $otherUser->picture,
                 ],
-                'scheduled_at' => $booking->scheduled_at,
+                'scheduled_at' => $booking->scheduled_at ? $booking->scheduled_at->toIso8601String() : null,
                 'last_message' => $lastMessage ? [
                     'content' => $lastMessage->content,
                     'created_at' => $lastMessage->created_at,
-                    'is_mine' => $lastMessage->sender_id === $user->id,
+                    'is_mine' => $lastMessage->sender_id == $user->id,
                 ] : null,
                 'unread_count' => $unreadCount,
             ];
@@ -100,7 +101,7 @@ class ChatController extends Controller
                     'id' => $message->id,
                     'content' => $message->content,
                     'message_type' => $message->message_type,
-                    'is_mine' => $message->sender_id === $user->id,
+                    'is_mine' => $message->sender_id == $user->id,
                     'is_read' => $message->is_read,
                     'file_url' => $message->file_url,
                     'file_name' => $message->file_name,
@@ -109,13 +110,18 @@ class ChatController extends Controller
             });
 
         // Mark received messages as read
-        Message::where('booking_id', $bookingId)
-            ->where('recipient_id', $user->id)
-            ->where('is_read', false)
-            ->update([
-                'is_read' => true,
-                'read_at' => now(),
-            ]);
+        try {
+            Message::where('booking_id', $bookingId)
+                ->where('recipient_id', $user->id)
+                ->where('is_read', false)
+                ->update([
+                    'is_read' => true,
+                    'read_at' => now(),
+                ]);
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
+            \Illuminate\Support\Facades\Log::error('Failed to mark messages as read: ' . $e->getMessage());
+        }
 
         return response()->json([
             'success' => true,
@@ -152,9 +158,11 @@ class ChatController extends Controller
         }
 
         // Determine recipient
-        $recipientId = $booking->user_id === $user->id
+        $recipientId = $booking->user_id == $user->id
             ? $booking->counselor_id
             : $booking->user_id;
+
+        \Illuminate\Support\Facades\Log::info("Chat Send: Sender {$user->id}, Recipient {$recipientId}, Booking {$bookingId}");
 
         // Create message
         $message = Message::create([

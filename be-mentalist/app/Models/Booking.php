@@ -5,11 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class Booking extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
+
+    protected $table = 'consultation_bookings';
 
     /**
      * The primary key is stored as a UUID string.
@@ -23,10 +25,11 @@ class Booking extends Model
     protected $fillable = [
         'user_id',
         'counselor_id',
-        'scheduled_at',
+        'slot_id',
+        'booking_date',
+        'booking_time',
         'status',
         'notes',
-        'rejection_reason',
     ];
 
     /**
@@ -35,22 +38,28 @@ class Booking extends Model
     protected function casts(): array
     {
         return [
-            'scheduled_at' => 'datetime',
+            'booking_date' => 'date',
         ];
     }
 
     /**
-     * Boot the model and set the UUID.
+     * Get the scheduled_at attribute as valid Carbon instance.
      */
-    protected static function boot()
+    public function getScheduledAtAttribute()
     {
-        parent::boot();
+        try {
+            if ($this->booking_date && $this->booking_time) {
+                // booking_date might be Carbon (cast) or string
+                $dateStr = $this->booking_date instanceof \DateTimeInterface 
+                    ? $this->booking_date->format('Y-m-d') 
+                    : $this->booking_date;
 
-        static::creating(function ($model) {
-            if (empty($model->{$model->getKeyName()})) {
-                $model->{$model->getKeyName()} = Str::uuid()->toString();
+                return \Carbon\Carbon::parse($dateStr . ' ' . $this->booking_time);
             }
-        });
+        } catch (\Throwable $e) {
+            return null;
+        }
+        return null;
     }
 
     /**
@@ -67,6 +76,14 @@ class Booking extends Model
     public function counselor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'counselor_id');
+    }
+    
+    /**
+     * Get the time slot.
+     */
+    public function slot(): BelongsTo
+    {
+        return $this->belongsTo(AvailableTimeSlot::class, 'slot_id');
     }
 
     /**
