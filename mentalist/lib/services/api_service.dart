@@ -10,7 +10,7 @@ class ApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://192.168.100.11:8000/api';
+  static const String baseUrl = 'http://10.0.60.110:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -438,73 +438,7 @@ class ApiService {
   }
 
   /// -------------------------------
-  /// UPDATE USER PROFILE
-  /// -------------------------------
-  static Future<Map<String, dynamic>> updateProfile({
-    String? name,
-    String? phone,
-    String? birthDate,
-    String? address,
-    File? photo,
-  }) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('accessToken') ?? '';
-
-      if (token.isEmpty) {
-        return {'success': false, 'message': 'Belum login'};
-      }
-
-      var request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/user/update'), // Assuming this is the endpoint
-      );
-
-      request.headers.addAll({
-        'Authorization': 'Bearer $token',
-        'Accept': 'application/json',
-      });
-
-      if (name != null) request.fields['name'] = name;
-      if (phone != null) request.fields['phone'] = phone;
-      if (birthDate != null) request.fields['birth_date'] = birthDate;
-      if (address != null) request.fields['address'] = address;
-      
-      // Handle method spoofing for Laravel PUT if needed, but using POST for multipart is safer usually.
-      // Or if backend expects PUT:
-      // request.fields['_method'] = 'PUT';
-
-      if (photo != null) {
-        request.files.add(await http.MultipartFile.fromPath(
-          'photo',
-          photo.path,
-        ));
-      }
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
-      AppLogger.info('📡 [USER] Update Profile Status: ${response.statusCode}');
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return {'success': true, 'message': 'Profil berhasil diperbarui', 'data': data['data']};
-      }
-
-       if (response.statusCode == 422) {
-         final data = json.decode(response.body);
-         return {'success': false, 'message': data['message'] ?? 'Validasi gagal'};
-       }
-
-      return {'success': false, 'message': 'Gagal memperbarui profil'};
-    } catch (e) {
-      AppLogger.error('[USER] Update profile error: $e');
-      return {'success': false, 'message': 'Terjadi kesalahan'};
-    }
-  }
-
-  /// -------------------------------
-  /// FETCH NOTIFICATIONS (STATIC)
+  /// FETCH NOTIFICATIONS
   /// -------------------------------
   static Future<Map<String, dynamic>> fetchNotifications() async {
     try {
@@ -512,25 +446,154 @@ class ApiService {
       final token = prefs.getString('accessToken') ?? '';
 
       if (token.isEmpty) {
-        return {'success': false, 'message': 'Belum login'};
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
       }
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/notifications'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      AppLogger.info('📡 [USER] Request → $baseUrl/notifications');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/notifications'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(
+            timeoutDuration,
+            onTimeout: () {
+              throw TimeoutException('Request timeout');
+            },
+          );
+
+      AppLogger.info('📡 [USER] Status: ${response.statusCode}');
+      AppLogger.debug('📬 [USER] Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        return {'success': true, 'data': json.decode(response.body)['data']};
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'data': data['data'] ?? data,
+        };
       }
 
-      return {'success': false, 'message': 'Gagal mengambil notifikasi'};
+      return {
+        'success': false,
+        'message': 'Gagal mengambil notifikasi',
+        'error': 'server_error',
+      };
+    } on TimeoutException catch (e) {
+      AppLogger.error('[USER] Fetch notifications timeout: $e');
+      return {'success': false, 'message': 'Koneksi timeout', 'error': 'timeout'};
+    } on SocketException catch (e) {
+      AppLogger.error('[USER] Fetch notifications network error: $e');
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server', 'error': 'network_error'};
     } catch (e) {
-      AppLogger.error('[USER] Get notifications error: $e');
-      return {'success': false, 'message': 'Terjadi kesalahan'};
+      AppLogger.error('[USER] Fetch notifications error: $e');
+      return {'success': false, 'message': 'Terjadi kesalahan', 'error': 'unknown_error'};
+    }
+  }
+
+  /// -------------------------------
+  /// UPDATE PROFILE
+  /// -------------------------------
+  static Future<Map<String, dynamic>> updateProfile({
+    String? name,
+    String? phone,
+    String? birthDate,
+    String? address,
+    String? photo,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
+      }
+
+      AppLogger.info('📡 [USER] Request → $baseUrl/user/profile');
+
+      final body = <String, dynamic>{};
+      if (name != null && name.isNotEmpty) body['name'] = name;
+      if (phone != null && phone.isNotEmpty) body['phone'] = phone;
+      if (birthDate != null && birthDate.isNotEmpty) body['birth_date'] = birthDate;
+      if (address != null && address.isNotEmpty) body['address'] = address;
+      if (photo != null && photo.isNotEmpty) body['photo'] = photo;
+
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/user/profile'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode(body),
+          )
+          .timeout(
+            timeoutDuration,
+            onTimeout: () {
+              throw TimeoutException('Request timeout');
+            },
+          );
+
+      AppLogger.info('📡 [USER] Status: ${response.statusCode}');
+      AppLogger.debug('📬 [USER] Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Profil berhasil diperbarui',
+          'data': data['data'] ?? data,
+        };
+      }
+
+      if (response.statusCode == 422) {
+        final data = json.decode(response.body);
+        String errorMessage = 'Validasi gagal';
+        if (data['errors'] != null) {
+          final errors = data['errors'];
+          if (errors is Map && errors.keys.isNotEmpty) {
+            final firstErrorKey = errors.keys.first;
+            final firstErrorValue = errors[firstErrorKey];
+            if (firstErrorValue is List && firstErrorValue.isNotEmpty) {
+              errorMessage = firstErrorValue.first ?? 'Validasi gagal';
+            } else if (firstErrorValue is String) {
+              errorMessage = firstErrorValue;
+            }
+          }
+        }
+        return {
+          'success': false,
+          'message': errorMessage,
+          'error': 'validation_error',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'Gagal memperbarui profil',
+        'error': 'server_error',
+      };
+    } on TimeoutException catch (e) {
+      AppLogger.error('[USER] Update profile timeout: $e');
+      return {'success': false, 'message': 'Koneksi timeout', 'error': 'timeout'};
+    } on SocketException catch (e) {
+      AppLogger.error('[USER] Update profile network error: $e');
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server', 'error': 'network_error'};
+    } catch (e) {
+      AppLogger.error('[USER] Update profile error: $e');
+      return {'success': false, 'message': 'Terjadi kesalahan', 'error': 'unknown_error'};
     }
   }
 }
