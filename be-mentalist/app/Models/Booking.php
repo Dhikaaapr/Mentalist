@@ -7,6 +7,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
+/**
+ * @property string $id
+ * @property string $user_id
+ * @property string $counselor_id
+ * @property string|null $slot_id
+ * @property \Illuminate\Support\Carbon|string $booking_date
+ * @property string $booking_time
+ * @property string $status
+ * @property string|null $notes
+ * @property string|null $rejection_reason
+ * @property \Illuminate\Support\Carbon $created_at
+ * @property \Illuminate\Support\Carbon $updated_at
+ * @property-read \App\Models\User $user
+ * @property-read \App\Models\User $counselor
+ * @property-read \App\Models\AvailableTimeSlot|null $slot
+ * @property-read \Carbon\Carbon|null $scheduled_at
+ */
 class Booking extends Model
 {
     use HasFactory, HasUuids;

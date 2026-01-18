@@ -4,6 +4,7 @@ import 'schedule_page.dart';
 import 'profile_page.dart';
 import 'counselor_list_page.dart';
 import 'history_page.dart';
+import 'counseling_notes_page.dart';
 import 'notification_page.dart';
 import 'chat_list_page.dart';
 import 'weekly_schedule_setup_page.dart';
@@ -30,6 +31,12 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
   int selectedNav = 0;
   bool isLoading = true;
   List<dynamic> todayBookings = [];
+  
+  // Dashboard stats
+  int sessionsThisWeek = 0;
+  int counselingNotes = 0;
+  int activeClients = 0;
+  int hoursRemaining = 0;
 
   @override
   void initState() {
@@ -65,11 +72,29 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
     setState(() => isLoading = true);
 
     try {
-      final result = await CounselorApiService.getTodayBookings();
+      // Load today bookings and stats in parallel
+      final results = await Future.wait([
+        CounselorApiService.getTodayBookings(),
+        CounselorApiService.getDashboardStats(),
+      ]);
+      
+      final bookingsResult = results[0];
+      final statsResult = results[1];
+      
       if (!mounted) return;
 
       setState(() {
-        todayBookings = result['data'] ?? [];
+        todayBookings = bookingsResult['data'] ?? [];
+        
+        // Update stats if successful
+        if (statsResult['success'] == true && statsResult['data'] != null) {
+          final stats = statsResult['data'];
+          sessionsThisWeek = stats['sessions_this_week'] ?? 0;
+          counselingNotes = stats['counseling_notes'] ?? 0;
+          activeClients = stats['active_clients'] ?? 0;
+          hoursRemaining = stats['hours_remaining'] ?? 0;
+        }
+        
         isLoading = false;
       });
     } catch (e) {
@@ -209,8 +234,26 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  statItem(number: "5", label: "Session\nThis Week"),
-                  statItem(number: "12", label: "Counseling\nNotes"),
+                  statItem(
+                    number: sessionsThisWeek.toString(),
+                    label: "Session\nThis Week",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const SchedulePage()),
+                      );
+                    },
+                  ),
+                  statItem(
+                    number: counselingNotes.toString(),
+                    label: "Counseling\nNotes",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CounselingNotesPage()),
+                      );
+                    },
+                  ),
                 ],
               ),
 
@@ -221,7 +264,7 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   statItem(
-                    number: "4",
+                    number: activeClients.toString(),
                     label: "Active Clients",
                     onTap: () {
                       Navigator.push(
@@ -232,7 +275,10 @@ class _CounselorDashboardPageState extends State<CounselorDashboardPage> {
                       );
                     },
                   ),
-                  statItem(number: "8", label: "Hours\nRemaining"),
+                  statItem(
+                    number: hoursRemaining.toString(),
+                    label: "Hours\nRemaining",
+                  ),
                 ],
               ),
 

@@ -390,17 +390,26 @@ class BookingService
      */
     private function formatBooking(Booking $booking): array
     {
+        /** @var \App\Models\Booking $booking */
         $booking->load(['user', 'counselor']);
 
         // Construct scheduled_at from booking_date and booking_time
+        // Construct scheduled_at from booking_date and booking_time
         $scheduledAt = null;
-        if ($booking->booking_date && $booking->booking_time) {
-            $date = $booking->booking_date instanceof \DateTime 
-                ? $booking->booking_date->format('Y-m-d') 
-                : $booking->booking_date;
-            $scheduledAt = \Carbon\Carbon::parse($date . ' ' . $booking->booking_time)->toIso8601String();
+        
+        // Access properties using standard accessors
+        $bDate = $booking->booking_date;
+        $bTime = $booking->booking_time;
+
+        if ($bDate && $bTime) {
+            $date = $bDate instanceof \DateTimeInterface 
+                ? $bDate->format('Y-m-d') 
+                : $bDate;
+            $scheduledAt = \Carbon\Carbon::parse($date . ' ' . $bTime)->toIso8601String();
         } elseif ($booking->scheduled_at) {
-            $scheduledAt = $booking->scheduled_at->toIso8601String();
+            $scheduledAt = $booking->scheduled_at instanceof \DateTimeInterface
+                ? $booking->scheduled_at->toIso8601String()
+                : null;
         }
 
         return [
@@ -426,5 +435,80 @@ class BookingService
             'created_at' => $booking->created_at->toIso8601String(),
             'updated_at' => $booking->updated_at->toIso8601String(),
         ];
+    }
+
+    /**
+     * Get dashboard statistics for counselor.
+     */
+    public function getDashboardStats(string $counselorId): array
+    {
+        // Sessions this week
+        $startOfWeek = now()->startOfWeek();
+        $endOfWeek = now()->endOfWeek();
+        
+        $sessionsThisWeek = Booking::where('counselor_id', $counselorId)
+            ->whereIn('status', ['confirmed', 'completed', 'pending'])
+            ->whereBetween('booking_date', [$startOfWeek->format('Y-m-d'), $endOfWeek->format('Y-m-d')])
+            ->count();
+        
+        // Active clients (unique users with active bookings)
+        $activeClients = Booking::where('counselor_id', $counselorId)
+            ->whereIn('status', ['confirmed', 'pending'])
+            ->distinct('user_id')
+            ->count('user_id');
+        
+        // Counseling notes (completed sessions)
+        $completedSessions = Booking::where('counselor_id', $counselorId)
+            ->where('status', 'completed')
+            ->count();
+        
+        // Hours remaining today (calculate from weekly availability)
+        $hoursRemaining = $this->calculateHoursRemaining($counselorId);
+        
+        return [
+            'success' => true,
+            'data' => [
+                'sessions_this_week' => $sessionsThisWeek,
+                'counseling_notes' => $completedSessions,
+                'active_clients' => $activeClients,
+                'hours_remaining' => $hoursRemaining,
+            ]
+        ];
+    }
+
+    /**
+     * Calculate remaining hours for today based on weekly availability.
+     */
+    private function calculateHoursRemaining(string $counselorId): int
+    {
+        $dayOfWeek = strtolower(now()->format('l')); // e.g., "monday"
+        
+        // Get counselor's weekly schedule for today
+        $schedule = \App\Models\CounselorWeeklySchedule::where('counselor_id', $counselorId)
+            ->where('day_of_week', $dayOfWeek)
+            ->where('is_available', true)
+            ->first();
+        
+        if (!$schedule) {
+            return 0;
+        }
+        
+        $now = now();
+        $endTime = \Carbon\Carbon::parse($schedule->end_time);
+        
+        // If current time is past end time, no hours remaining
+        if ($now->gt($endTime)) {
+            return 0;
+        }
+        
+        $startTime = \Carbon\Carbon::parse($schedule->start_time);
+        
+        // If current time is before start time, return full hours
+        if ($now->lt($startTime)) {
+            return (int) $startTime->diffInHours($endTime);
+        }
+        
+        // Return remaining hours from now until end time
+        return (int) $now->diffInHours($endTime);
     }
 }

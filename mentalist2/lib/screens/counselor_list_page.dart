@@ -9,20 +9,20 @@ class CounselorListPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> clients = [
-      {
-        "name": "Sarah L",
-        "progress": 4,
-        "total": 8,
-        "status": "Ongoing",
-        "date": "10 November 2025",
-      },
-      {
-        "name": "Timothy",
-        "progress": 6,
-        "total": 8,
-        "status": "Ongoing",
-        "date": "10 November 2025",
-      },
+      // {
+      //   "name": "Sarah L",
+      //   "progress": 4,
+      //   "total": 8,
+      //   "status": "Ongoing",
+      //   "date": "10 November 2025",
+      // },
+      // {
+      //   "name": "Timothy",
+      //   "progress": 6,
+      //   "total": 8,
+      //   "status": "Ongoing",
+      //   "date": "10 November 2025",
+      // },
     ];
 
     return Scaffold(

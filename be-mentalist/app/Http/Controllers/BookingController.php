@@ -170,4 +170,16 @@ class BookingController extends Controller
 
         return response()->json($result, $result['success'] ? 200 : 400);
     }
+
+    /**
+     * Get dashboard statistics for counselor.
+     */
+    public function dashboardStats(Request $request): JsonResponse
+    {
+        $result = $this->bookingService->getDashboardStats(
+            $request->user()->id
+        );
+
+        return response()->json($result);
+    }
 }

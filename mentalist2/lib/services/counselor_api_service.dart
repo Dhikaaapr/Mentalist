@@ -395,4 +395,43 @@ class CounselorApiService {
       return {'success': false, 'message': 'Kesalahan jaringan'};
     }
   }
+
+  /// -------------------------------
+  /// GET DASHBOARD STATS
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getDashboardStats() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {'success': false, 'message': 'Token tidak ditemukan'};
+      }
+
+      AppLogger.info(
+        '📡 [COUNSELOR] Get dashboard stats → $baseUrl/counselor/dashboard-stats',
+      );
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/counselor/dashboard-stats'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
+
+      AppLogger.info('📡 [COUNSELOR] Stats Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, 'data': data['data']};
+      }
+      return {'success': false, 'message': 'Gagal mengambil statistik'};
+    } catch (e) {
+      AppLogger.error('[COUNSELOR] Error dashboard stats: $e');
+      return {'success': false, 'message': 'Kesalahan jaringan'};
+    }
+  }
 }

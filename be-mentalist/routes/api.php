@@ -117,6 +117,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/weekly-availability/check', [CounselorAvailabilityController::class, 'hasWeeklySetup']);
         Route::get('/weekly-availability', [CounselorAvailabilityController::class, 'getWeeklyAvailability']);
         Route::post('/weekly-availability', [CounselorAvailabilityController::class, 'saveWeeklyAvailability']);
+
+        // Dashboard Stats
+        Route::get('/dashboard-stats', [BookingController::class, 'dashboardStats']);
     });
 
     // Public: Get available slots for a counselor
