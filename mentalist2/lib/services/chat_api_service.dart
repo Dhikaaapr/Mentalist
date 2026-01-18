@@ -11,7 +11,7 @@ class ChatApiService {
 
   // Physical device - Update this to your backend IP
   // static const String baseUrl = 'http://10.92.142.43:8000/api';
-  static const String baseUrl = 'http://192.168.101.2:8000/api';
+  static const String baseUrl = 'http://192.168.100.11:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 

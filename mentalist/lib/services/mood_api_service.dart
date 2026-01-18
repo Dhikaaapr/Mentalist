@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logger.dart';
 
 class MoodApiService {
-  static const String baseUrl = 'http://192.168.101.2:8000/api';
+  static const String baseUrl = 'http://192.168.100.11:8000/api';
   static const Duration timeoutDuration = Duration(seconds: 30);
 
   /// -------------------------------
@@ -23,13 +23,15 @@ class MoodApiService {
 
       AppLogger.info('📡 [MOOD] Fetching weekly mood...');
 
-      final response = await http.get(
-        Uri.parse('$baseUrl/moods'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      ).timeout(timeoutDuration);
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/moods'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
 
       AppLogger.info('📡 [MOOD] Status: ${response.statusCode}');
 
@@ -48,7 +50,10 @@ class MoodApiService {
   /// -------------------------------
   /// SAVE MOOD
   /// -------------------------------
-  static Future<Map<String, dynamic>> saveMood(String mood, DateTime date) async {
+  static Future<Map<String, dynamic>> saveMood(
+    String mood,
+    DateTime date,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
@@ -59,18 +64,17 @@ class MoodApiService {
 
       AppLogger.info('📡 [MOOD] Saving mood: $mood for $date');
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/moods'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: json.encode({
-          'mood': mood,
-          'date': date.toIso8601String(),
-        }),
-      ).timeout(timeoutDuration);
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/moods'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode({'mood': mood, 'date': date.toIso8601String()}),
+          )
+          .timeout(timeoutDuration);
 
       AppLogger.info('📡 [MOOD] Save Status: ${response.statusCode}');
 

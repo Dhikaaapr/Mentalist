@@ -188,20 +188,31 @@ class _HomeViewState extends State<HomeView> {
   void _loadWeeklyMood() async {
     // Panggil API
     final result = await MoodApiService.getWeeklyMood();
-
-    if (result['success'] == true) {
+    
+    debugPrint('🔍 [MOOD] API Response: $result');
+    
+    if (result['success'] == true && result['data'] != null) {
       List data = result['data'];
+      debugPrint('📊 [MOOD] Found ${data.length} mood entries');
       
-      // Reset dulu
-      setState(() {
-         weeklyMood.updateAll((key, value) => null);
-         weeklyColors = List.generate(7, (_) => Colors.grey.shade300);
-      });
-
+      // Build new data structures FIRST (don't reset UI yet)
+      Map<String, String?> newWeeklyMood = {
+        "Mon": null,
+        "Tue": null,
+        "Wed": null,
+        "Thu": null,
+        "Fri": null,
+        "Sat": null,
+        "Sun": null,
+      };
+      List<Color> newWeeklyColors = List.generate(7, (_) => Colors.grey.shade300);
+      
       // Mapping data API ke UI
       for (var item in data) {
         String entryDate = item['entry_date']; // "2026-01-19"
         String mood = item['mood_label'];
+        
+        debugPrint('  📅 [MOOD] Processing: $entryDate -> $mood');
 
         DateTime date = DateTime.parse(entryDate);
         // Cari hari apa (Senin=1 -> Mon)
@@ -210,16 +221,22 @@ class _HomeViewState extends State<HomeView> {
         
         int dayIndex = date.weekday - 1;
         if (dayIndex >= 0 && dayIndex < 7) {
-            String dayLabel = weeklyLabels[dayIndex];
-            
-            if (mounted) {
-              setState(() {
-                weeklyMood[dayLabel] = mood;
-                weeklyColors[dayIndex] = _getMoodColor(mood);
-              });
-            }
+          String dayLabel = weeklyLabels[dayIndex];
+          newWeeklyMood[dayLabel] = mood;
+          newWeeklyColors[dayIndex] = _getMoodColor(mood);
         }
       }
+      
+      // SINGLE setState with all new data at once
+      if (mounted) {
+        setState(() {
+          weeklyMood = newWeeklyMood;
+          weeklyColors = newWeeklyColors;
+        });
+        debugPrint('✅ [MOOD] Graph updated with ${data.length} moods');
+      }
+    } else {
+      debugPrint('❌ [MOOD] Failed to load moods: ${result['message']}');
     }
   }
 
@@ -311,6 +328,144 @@ class _HomeViewState extends State<HomeView> {
     _loadUserProfile(); // Load profile data
   }
 
+  // Convert mood emoji to numeric value for graph
+  double _getMoodValue(String? mood) {
+    if (mood == null) return 0;
+    switch (mood) {
+      case "😄":
+        return 2.0;  // Very Happy
+      case "😊":
+        return 1.0;  // Happy
+      case "😐":
+        return 0.0;  // Neutral
+      case "😕":
+        return -1.0; // Sad
+      case "😭":
+        return -2.0; // Very Sad
+      default:
+        return 0.0;
+    }
+  }
+
+  // Build mood graph widget with Y-axis
+  Widget _buildMoodGraph() {
+    const double graphHeight = 180;
+    const double barWidth = 32;
+    const double unitHeight = 35; // Height per unit (1 point = 35px)
+    
+    return SizedBox(
+      height: graphHeight + 40, // Extra space for labels
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Y-AXIS LABELS
+          SizedBox(
+            width: 30,
+            height: graphHeight,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text("+2", style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                Text("+1", style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                Text("0", style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+                Text("-1", style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                Text("-2", style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+              ],
+            ),
+          ),
+          
+          const SizedBox(width: 8),
+          
+          // GRAPH AREA
+          Expanded(
+            child: Column(
+              children: [
+                // Graph bars
+                SizedBox(
+                  height: graphHeight,
+                  child: Stack(
+                    children: [
+                      // ZERO LINE (Reference line)
+                      Positioned(
+                        top: graphHeight / 2,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 1.5,
+                          color: Colors.grey.shade400,
+                        ),
+                      ),
+                      
+                      // BARS
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: List.generate(7, (i) {
+                          String dayLabel = weeklyLabels[i];
+                          String? mood = weeklyMood[dayLabel];
+                          double moodValue = _getMoodValue(mood);
+                          double barHeight = moodValue.abs() * unitHeight;
+                          bool isPositive = moodValue >= 0;
+                          
+                          return SizedBox(
+                            width: barWidth,
+                            height: graphHeight,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                if (moodValue != 0)
+                                  Positioned(
+                                    // Position bar relative to center (zero line)
+                                    top: isPositive 
+                                        ? (graphHeight / 2) - barHeight
+                                        : graphHeight / 2,
+                                    child: Container(
+                                      width: barWidth,
+                                      height: barHeight,
+                                      decoration: BoxDecoration(
+                                        color: weeklyColors[i],
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 10),
+                
+                // DAY LABELS
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: weeklyLabels.map((label) {
+                    return SizedBox(
+                      width: barWidth,
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -372,7 +527,14 @@ class _HomeViewState extends State<HomeView> {
 
             const SizedBox(height: 25),
 
-            // MOOD SECTION
+            // MOOD SECTION HEADER
+            const Text(
+              "How are you feeling today?",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 14),
+
+            // MOOD SELECTION ICONS
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: moods.map((m) {
@@ -402,40 +564,15 @@ class _HomeViewState extends State<HomeView> {
 
             const SizedBox(height: 30),
 
+            // GRAPH TITLE
             const Text(
-              "Mood Tracker",
+              "Daily Mood (7 Weeks)",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 14),
 
-            SizedBox(
-              height: 90,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(7, (i) {
-                  return Column(
-                    children: [
-                      Container(
-                        height: 50,
-                        width: 30,
-                        decoration: BoxDecoration(
-                          color: weeklyColors[i],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        weeklyLabels[i],
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  );
-                }),
-              ),
-            ),
+            // WEEKLY MOOD GRAPH WITH Y-AXIS
+            _buildMoodGraph(),
 
             const SizedBox(height: 25),
             Divider(color: Colors.grey.shade300),
