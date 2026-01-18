@@ -10,7 +10,7 @@ class AdminApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://10.0.60.110:8000/api';
+  static const String baseUrl = 'http://10.92.142.43:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -163,6 +163,164 @@ class AdminApiService {
 
       AppLogger.error('[ADMIN] Logout error: $e');
       return {'success': true, 'message': 'Logout berhasil'};
+    }
+  }
+
+  /// -------------------------------
+  /// GET ADMIN PROFILE
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
+      }
+
+      AppLogger.info('📡 [ADMIN] Get profile → $baseUrl/user');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/user'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
+
+      AppLogger.info('📡 [ADMIN] Status: ${response.statusCode}');
+      AppLogger.debug('📬 [ADMIN] Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, ...data};
+      }
+
+      if (response.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Sesi habis, silakan login kembali',
+          'error': 'unauthorized',
+        };
+      }
+
+      return {'success': false, 'message': 'Gagal mengambil profil'};
+    } on TimeoutException catch (e) {
+      AppLogger.error('[ADMIN] Timeout: $e');
+      return {
+        'success': false,
+        'message': 'Koneksi timeout',
+        'error': 'timeout',
+      };
+    } on SocketException catch (e) {
+      AppLogger.error('[ADMIN] Network error: $e');
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server',
+        'error': 'network_error',
+      };
+    } catch (e) {
+      AppLogger.error('[ADMIN] Get profile error: $e');
+      return {'success': false, 'message': 'Terjadi kesalahan'};
+    }
+  }
+
+  /// -------------------------------
+  /// UPDATE ADMIN PROFILE
+  /// -------------------------------
+  static Future<Map<String, dynamic>> updateProfile({
+    String? name,
+    String? phone,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
+      }
+
+      AppLogger.info('📡 [ADMIN] Update profile → $baseUrl/user');
+
+      final body = <String, dynamic>{};
+      if (name != null && name.isNotEmpty) body['name'] = name;
+      if (phone != null && phone.isNotEmpty) body['phone'] = phone;
+
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/user'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: json.encode(body),
+          )
+          .timeout(timeoutDuration);
+
+      AppLogger.info('📡 [ADMIN] Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, ...data};
+      }
+
+      return {'success': false, 'message': 'Gagal update profil'};
+    } catch (e) {
+      AppLogger.error('[ADMIN] Update profile error: $e');
+      return {'success': false, 'message': 'Terjadi kesalahan'};
+    }
+  }
+
+  /// -------------------------------
+  /// GET ALL THERAPY SESSIONS (BOOKINGS)
+  /// -------------------------------
+  static Future<Map<String, dynamic>> getTherapySessions() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      if (token.isEmpty) {
+        return {
+          'success': false,
+          'message': 'Belum login',
+          'error': 'no_token',
+        };
+      }
+
+      AppLogger.info('📡 [ADMIN] Get therapy sessions → $baseUrl/admin/bookings');
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/admin/bookings'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
+
+      AppLogger.info('📡 [ADMIN] Status: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {'success': true, ...data};
+      }
+
+      return {'success': false, 'message': 'Gagal mengambil data sesi'};
+    } catch (e) {
+      AppLogger.error('[ADMIN] Get sessions error: $e');
+      return {'success': false, 'message': 'Terjadi kesalahan'};
     }
   }
 

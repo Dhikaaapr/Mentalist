@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'admin_dashboard.dart';
 import 'profile_page.dart';
-import 'notification_page.dart';
-import 'therapy_session_page.dart'; // ✅ TAMBAHAN
+import 'therapy_session_page.dart';
 
 class AdminBottomNav extends StatefulWidget {
   const AdminBottomNav({super.key});
@@ -13,67 +12,104 @@ class AdminBottomNav extends StatefulWidget {
 }
 
 class _AdminBottomNavState extends State<AdminBottomNav> {
-  int _currentIndex = 1;
+  int _currentIndex = 0; // Default ke Dashboard
 
-  // ❗ HANYA TAB ASLI
   final List<Widget> _pages = const [
-    AdminProfilePage(),
-    AdminDashboardPage(),
-    NotificationPage(),
+    AdminDashboardPage(),      // index 0: Dashboard
+    TherapySessionPage(),      // index 1: Therapy Session
+    AdminProfilePage(),        // index 2: Profile
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_currentIndex],
+      bottomNavigationBar: _buildBottomNavBar(),
+    );
+  }
 
-      bottomNavigationBar: Container(
-        height: 70,
-        decoration: const BoxDecoration(
-          color: Color(0xFF3F3D7D),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+  Widget _buildBottomNavBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF2D2D5E),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(
+                icon: Icons.dashboard_rounded,
+                label: 'Dashboard',
+                index: 0,
+              ),
+              _buildNavItem(
+                icon: Icons.psychology_rounded,
+                label: 'Therapy',
+                index: 1,
+              ),
+              _buildNavItem(
+                icon: Icons.person_rounded,
+                label: 'Profile',
+                index: 2,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
+    final isActive = _currentIndex == index;
+
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(
+          horizontal: isActive ? 20 : 12,
+          vertical: 10,
+        ),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _item(icon: Icons.person, index: 0),
-            _item(icon: Icons.home, index: 1),
-            _therapyItem(), // 🧠 KHUSUS
+            Icon(
+              icon,
+              size: 24,
+              color: isActive ? Colors.white : Colors.white54,
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ],
         ),
-      ),
-    );
-  }
-
-  // ================= TAB NORMAL =================
-  Widget _item({required IconData icon, required int index}) {
-    final active = _currentIndex == index;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() => _currentIndex = index);
-      },
-      child: Icon(
-        icon,
-        size: 28,
-        color: active ? Colors.white : Colors.white70,
-      ),
-    );
-  }
-
-  // ================= ICON OTAK =================
-  Widget _therapyItem() {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const TherapySessionPage()),
-        );
-      },
-      child: const Icon(
-        Icons.psychology_alt_rounded,
-        size: 28,
-        color: Colors.white70,
       ),
     );
   }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import '../services/admin_api_services.dart';
 import 'report_page.dart';
-import 'admin_management_page.dart'; // Import the new page
-import 'admin_user_management_page.dart'; // Import user management page
+import 'admin_management_page.dart';
+import 'admin_user_management_page.dart';
 import 'notification_page.dart';
-import 'schedule_approval_counselors.dart'; // ✅ FIX
+import 'schedule_approval_counselors.dart';
 import 'schedule_management_users.dart';
 
 class AdminDashboardPage extends StatefulWidget {
@@ -14,6 +15,10 @@ class AdminDashboardPage extends StatefulWidget {
 }
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
+  String _adminName = 'Admin';
+  String? _adminPicture;
+  bool _isLoading = true;
+
   final List<Map<String, dynamic>> menuItems = [
     {
       'icon': Icons.storage_rounded,
@@ -24,14 +29,36 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
     {
       'icon': Icons.groups_rounded,
       'title': "Management",
-      'page': const AdminManagementPage(), // Updated to new page
+      'page': const AdminManagementPage(),
     },
     {
       'icon': Icons.calendar_month_rounded,
       'title': "Setting Session",
-      'page': const AdminUserManagementPage(), // Updated to user management
+      'page': const AdminUserManagementPage(),
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAdminProfile();
+  }
+
+  Future<void> _loadAdminProfile() async {
+    final result = await AdminApiService.getProfile();
+
+
+
+    if (result['success'] == true && result['user'] != null) {
+      final user = result['user'];
+      setState(() {
+        _adminName = user['name'] ?? 'Admin';
+        _adminPicture = user['picture'];
+      });
+    }
+
+    setState(() => _isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,23 +72,34 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             children: [
               const SizedBox(height: 10),
 
+              // Header with profile
               Row(
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 30,
-                    backgroundColor: Color(0xFFE0E0E0),
-                    child: Icon(
-                      Icons.person,
-                      size: 34,
-                      color: Color(0xFF3F3D7D),
-                    ),
+                    backgroundColor: const Color(0xFFE0E0E0),
+                    backgroundImage: _adminPicture != null
+                        ? NetworkImage(_adminPicture!)
+                        : null,
+                    child: _adminPicture == null
+                        ? const Icon(
+                            Icons.person,
+                            size: 34,
+                            color: Color(0xFF3F3D7D),
+                          )
+                        : null,
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    "Sarah Lee",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Text(
+                      _isLoading ? '...' : _adminName,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  const Spacer(),
                   IconButton(
                     icon: const Icon(
                       Icons.notifications,
@@ -177,7 +215,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             _popupButton(
               context,
               "Schedule Approval counselors",
-              const ScheduleApprovalCounselors(), // ✅ FIX
+              const ScheduleApprovalCounselors(),
             ),
             const SizedBox(height: 16),
             _popupButton(

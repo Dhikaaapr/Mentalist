@@ -9,7 +9,7 @@ class BookingApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://10.0.60.110:8000/api';
+  static const String baseUrl = 'http://10.92.142.43:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -268,11 +268,11 @@ class BookingApiService {
         };
       }
 
-      AppLogger.info('📡 [BOOKING] Reschedule → $baseUrl/bookings/$id/reschedule');
+      AppLogger.info(
+        '📡 [BOOKING] Reschedule → $baseUrl/bookings/$id/reschedule',
+      );
 
-      final body = {
-        'scheduled_at': newScheduledAt.toUtc().toIso8601String(),
-      };
+      final body = {'scheduled_at': newScheduledAt.toUtc().toIso8601String()};
 
       final response = await http
           .post(
@@ -331,8 +331,7 @@ class BookingApiService {
       final now = DateTime.now();
       List<dynamic> upcomingBookings = bookings.where((b) {
         final scheduledAt = DateTime.parse(b['scheduled_at']);
-        return scheduledAt.isAfter(now) ||
-            scheduledAt.isAtSameMomentAs(now);
+        return scheduledAt.isAfter(now) || scheduledAt.isAtSameMomentAs(now);
       }).toList();
 
       if (upcomingBookings.isEmpty) {

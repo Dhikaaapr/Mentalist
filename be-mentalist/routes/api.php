@@ -72,6 +72,9 @@ Route::middleware('auth:sanctum')->group(function () {
         
         Route::get('/reports/stats', [\App\Http\Controllers\AdminController::class, 'getReportStats']);
 
+        // Therapy Sessions (All Bookings)
+        Route::get('/bookings', [\App\Http\Controllers\AdminController::class, 'getAllBookings']);
+
         // Admin Notifications
         Route::get('/notifications', [\App\Http\Controllers\AdminController::class, 'getNotifications']);
         Route::post('/notifications/{id}/read', [\App\Http\Controllers\AdminController::class, 'markAsRead']);

@@ -10,7 +10,7 @@ class ChatApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // Physical device - Update this to your backend IP
-  static const String baseUrl = 'http://10.0.60.110:8000/api';
+  static const String baseUrl = 'http://10.92.142.43:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -55,10 +55,7 @@ class ChatApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return {
-          'success': true,
-          'data': data['data'] ?? [],
-        };
+        return {'success': true, 'data': data['data'] ?? []};
       }
 
       if (response.statusCode == 401) {
@@ -86,13 +83,25 @@ class ChatApiService {
       }
     } on TimeoutException {
       AppLogger.error('[CHAT] Request timeout');
-      return {'success': false, 'message': 'Koneksi timeout', 'error': 'timeout'};
+      return {
+        'success': false,
+        'message': 'Koneksi timeout',
+        'error': 'timeout',
+      };
     } on SocketException catch (e) {
       AppLogger.error('[CHAT] Network error: $e');
-      return {'success': false, 'message': 'Tidak dapat terhubung ke server', 'error': 'network_error'};
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server',
+        'error': 'network_error',
+      };
     } catch (e, stack) {
       AppLogger.error('[CHAT] Error: $e\n$stack');
-      return {'success': false, 'message': 'Terjadi kesalahan: $e', 'error': 'unknown_error'};
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan: $e',
+        'error': 'unknown_error',
+      };
     }
   }
 
@@ -130,10 +139,7 @@ class ChatApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return {
-          'success': true,
-          'data': data['data'] ?? [],
-        };
+        return {'success': true, 'data': data['data'] ?? []};
       }
 
       if (response.statusCode == 404) {
@@ -159,13 +165,25 @@ class ChatApiService {
       };
     } on TimeoutException {
       AppLogger.error('[CHAT] Request timeout');
-      return {'success': false, 'message': 'Koneksi timeout', 'error': 'timeout'};
+      return {
+        'success': false,
+        'message': 'Koneksi timeout',
+        'error': 'timeout',
+      };
     } on SocketException catch (e) {
       AppLogger.error('[CHAT] Network error: $e');
-      return {'success': false, 'message': 'Tidak dapat terhubung ke server', 'error': 'network_error'};
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server',
+        'error': 'network_error',
+      };
     } catch (e, stack) {
       AppLogger.error('[CHAT] Error: $e\n$stack');
-      return {'success': false, 'message': 'Terjadi kesalahan: $e', 'error': 'unknown_error'};
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan: $e',
+        'error': 'unknown_error',
+      };
     }
   }
 
@@ -270,13 +288,25 @@ class ChatApiService {
       }
     } on TimeoutException {
       AppLogger.error('[CHAT] Request timeout');
-      return {'success': false, 'message': 'Koneksi timeout', 'error': 'timeout'};
+      return {
+        'success': false,
+        'message': 'Koneksi timeout',
+        'error': 'timeout',
+      };
     } on SocketException catch (e) {
       AppLogger.error('[CHAT] Network error: $e');
-      return {'success': false, 'message': 'Tidak dapat terhubung ke server', 'error': 'network_error'};
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server',
+        'error': 'network_error',
+      };
     } catch (e, stack) {
       AppLogger.error('[CHAT] Error: $e\n$stack');
-      return {'success': false, 'message': 'Terjadi kesalahan: $e', 'error': 'unknown_error'};
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan: $e',
+        'error': 'unknown_error',
+      };
     }
   }
 }

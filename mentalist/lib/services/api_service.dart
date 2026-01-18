@@ -10,7 +10,7 @@ class ApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://10.0.60.110:8000/api';
+  static const String baseUrl = 'http://10.92.142.43:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -475,10 +475,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return {
-          'success': true,
-          'data': data['data'] ?? data,
-        };
+        return {'success': true, 'data': data['data'] ?? data};
       }
 
       return {
@@ -488,13 +485,25 @@ class ApiService {
       };
     } on TimeoutException catch (e) {
       AppLogger.error('[USER] Fetch notifications timeout: $e');
-      return {'success': false, 'message': 'Koneksi timeout', 'error': 'timeout'};
+      return {
+        'success': false,
+        'message': 'Koneksi timeout',
+        'error': 'timeout',
+      };
     } on SocketException catch (e) {
       AppLogger.error('[USER] Fetch notifications network error: $e');
-      return {'success': false, 'message': 'Tidak dapat terhubung ke server', 'error': 'network_error'};
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server',
+        'error': 'network_error',
+      };
     } catch (e) {
       AppLogger.error('[USER] Fetch notifications error: $e');
-      return {'success': false, 'message': 'Terjadi kesalahan', 'error': 'unknown_error'};
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan',
+        'error': 'unknown_error',
+      };
     }
   }
 
@@ -525,7 +534,8 @@ class ApiService {
       final body = <String, dynamic>{};
       if (name != null && name.isNotEmpty) body['name'] = name;
       if (phone != null && phone.isNotEmpty) body['phone'] = phone;
-      if (birthDate != null && birthDate.isNotEmpty) body['birth_date'] = birthDate;
+      if (birthDate != null && birthDate.isNotEmpty)
+        body['birth_date'] = birthDate;
       if (address != null && address.isNotEmpty) body['address'] = address;
       if (photo != null && photo.isNotEmpty) body['photo'] = photo;
 
@@ -587,13 +597,25 @@ class ApiService {
       };
     } on TimeoutException catch (e) {
       AppLogger.error('[USER] Update profile timeout: $e');
-      return {'success': false, 'message': 'Koneksi timeout', 'error': 'timeout'};
+      return {
+        'success': false,
+        'message': 'Koneksi timeout',
+        'error': 'timeout',
+      };
     } on SocketException catch (e) {
       AppLogger.error('[USER] Update profile network error: $e');
-      return {'success': false, 'message': 'Tidak dapat terhubung ke server', 'error': 'network_error'};
+      return {
+        'success': false,
+        'message': 'Tidak dapat terhubung ke server',
+        'error': 'network_error',
+      };
     } catch (e) {
       AppLogger.error('[USER] Update profile error: $e');
-      return {'success': false, 'message': 'Terjadi kesalahan', 'error': 'unknown_error'};
+      return {
+        'success': false,
+        'message': 'Terjadi kesalahan',
+        'error': 'unknown_error',
+      };
     }
   }
 }

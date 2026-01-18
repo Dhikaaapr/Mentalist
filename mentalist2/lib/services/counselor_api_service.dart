@@ -9,7 +9,7 @@ class CounselorApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://10.0.60.110:8000/api';
+  static const String baseUrl = 'http://10.92.142.43:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -286,7 +286,9 @@ class CounselorApiService {
         return {'success': false, 'has_setup': false};
       }
 
-      AppLogger.info('📡 [COUNSELOR] Check weekly setup → $baseUrl/counselor/weekly-availability/check');
+      AppLogger.info(
+        '📡 [COUNSELOR] Check weekly setup → $baseUrl/counselor/weekly-availability/check',
+      );
 
       final response = await http
           .get(
@@ -312,7 +314,9 @@ class CounselorApiService {
   /// -------------------------------
   /// SAVE WEEKLY AVAILABILITY
   /// -------------------------------
-  static Future<Map<String, dynamic>> saveWeeklyAvailability(List<Map<String, dynamic>> schedules) async {
+  static Future<Map<String, dynamic>> saveWeeklyAvailability(
+    List<Map<String, dynamic>> schedules,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('accessToken') ?? '';
@@ -321,7 +325,9 @@ class CounselorApiService {
         return {'success': false, 'message': 'Token tidak ditemukan'};
       }
 
-      AppLogger.info('📡 [COUNSELOR] Save weekly availability → $baseUrl/counselor/weekly-availability');
+      AppLogger.info(
+        '📡 [COUNSELOR] Save weekly availability → $baseUrl/counselor/weekly-availability',
+      );
 
       final response = await http
           .post(
@@ -341,10 +347,17 @@ class CounselorApiService {
       final data = json.decode(response.body);
 
       if (response.statusCode == 201) {
-        return {'success': true, 'message': data['message'], 'data': data['data']};
+        return {
+          'success': true,
+          'message': data['message'],
+          'data': data['data'],
+        };
       }
 
-      return {'success': false, 'message': data['message'] ?? 'Gagal menyimpan jadwal'};
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal menyimpan jadwal',
+      };
     } catch (e) {
       AppLogger.error('[COUNSELOR] Error saving weekly availability: $e');
       return {'success': false, 'message': 'Kesalahan jaringan'};

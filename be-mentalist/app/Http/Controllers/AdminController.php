@@ -101,4 +101,16 @@ class AdminController extends Controller
             'message' => 'Notification marked as read',
         ]);
     }
+
+    /**
+     * Get all bookings (Therapy Sessions)
+     */
+    public function getAllBookings(Request $request): JsonResponse
+    {
+        $result = $this->adminService->getAllBookings();
+
+        $status = $result['success'] ? 200 : 400;
+
+        return response()->json($result, $status);
+    }
 }

@@ -1,7 +1,48 @@
 import 'package:flutter/material.dart';
+import '../services/admin_api_services.dart';
 
-class TherapySessionPage extends StatelessWidget {
+class TherapySessionPage extends StatefulWidget {
   const TherapySessionPage({super.key});
+
+  @override
+  State<TherapySessionPage> createState() => _TherapySessionPageState();
+}
+
+class _TherapySessionPageState extends State<TherapySessionPage> {
+  bool _isLoading = true;
+  List<dynamic> _sessions = [];
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSessions();
+  }
+
+  Future<void> _loadSessions() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    final result = await AdminApiService.getTherapySessions();
+
+    if (result['success'] == true) {
+      if (mounted) {
+        setState(() {
+          _sessions = result['bookings'] ?? [];
+          _isLoading = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _errorMessage = result['message'] ?? 'Gagal memuat data';
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,11 +52,8 @@ class TherapySessionPage extends StatelessWidget {
       // ================= APP BAR =================
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Color.fromARGB(197, 229, 225, 225),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        backgroundColor: const Color.fromARGB(197, 229, 225, 225),
+        automaticallyImplyLeading: false, // Part of bottom nav
         title: const Text(
           "Therapy Session",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
@@ -24,107 +62,78 @@ class TherapySessionPage extends StatelessWidget {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black),
+            onPressed: _loadSessions,
+          ),
+        ],
       ),
 
       // ================= BODY =================
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Last Month",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black54,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            Expanded(
-              child: ListView(
-                children: const [
-                  TherapySessionItem(
-                    name: "Tami",
-                    time: "14:00 - 17:00",
-                    status: SessionStatus.ongoing,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage.isNotEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(_errorMessage),
+                      const SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: _loadSessions,
+                        child: const Text('Coba Lagi'),
+                      ),
+                    ],
                   ),
-                  TherapySessionItem(
-                    name: "Angga",
-                    time: "09:00 - 12:00",
-                    status: SessionStatus.ongoing,
-                  ),
-                  TherapySessionItem(
-                    name: "Putri",
-                    time: "08:00 - 10:00",
-                    status: SessionStatus.upcoming,
-                  ),
-                  TherapySessionItem(
-                    name: "Dino",
-                    time: "11:00 - 13:00",
-                    status: SessionStatus.completed,
-                  ),
-                  TherapySessionItem(
-                    name: "Tina",
-                    time: "08:00 - 10:00",
-                    status: SessionStatus.completed,
-                  ),
-                  TherapySessionItem(
-                    name: "Michael",
-                    time: "11:00 - 13:00",
-                    status: SessionStatus.upcoming,
-                  ),
-                  TherapySessionItem(
-                    name: "Timothy",
-                    time: "14:00 - 17:00",
-                    status: SessionStatus.upcoming,
-                  ),
-                  TherapySessionItem(
-                    name: "Natasha",
-                    time: "08:00 - 10:00",
-                    status: SessionStatus.ongoing,
-                  ),
-                  TherapySessionItem(
-                    name: "Giselle",
-                    time: "11:00 - 13:00",
-                    status: SessionStatus.completed,
-                  ),
-                  TherapySessionItem(
-                    name: "Rayhan",
-                    time: "14:00 - 17:00",
-                    status: SessionStatus.upcoming,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+                )
+              : _sessions.isEmpty
+                  ? const Center(child: Text("Belum ada sesi terapi"))
+                  : Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "All Sessions",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: _sessions.length,
+                              itemBuilder: (context, index) {
+                                final session = _sessions[index];
+                                return TherapySessionItem(session: session);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
     );
   }
 }
 
-// ================= MODEL =================
-
-enum SessionStatus { upcoming, ongoing, completed }
-
 // ================= ITEM CARD =================
 
 class TherapySessionItem extends StatelessWidget {
-  final String name;
-  final String time;
-  final SessionStatus status;
+  final Map<String, dynamic> session;
 
-  const TherapySessionItem({
-    super.key,
-    required this.name,
-    required this.time,
-    required this.status,
-  });
+  const TherapySessionItem({super.key, required this.session});
 
   @override
   Widget build(BuildContext context) {
+    final user = session['user'] ?? {};
+    final counselor = session['counselor'] ?? {};
+    final status = session['status'] ?? 'pending';
+    final time = "${session['booking_time'] ?? '-'}";
+    final date = "${session['booking_date'] ?? '-'}";
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -139,81 +148,98 @@ class TherapySessionItem extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          // Avatar
-          Container(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color.fromARGB(172, 109, 0, 235),
-            ),
-            child: const Icon(
-              Icons.person,
-              color: Color.fromARGB(255, 247, 246, 246),
-            ),
-          ),
+          Row(
+            children: [
+              // Avatar User
+              CircleAvatar(
+                radius: 21,
+                backgroundColor: const Color.fromARGB(172, 109, 0, 235),
+                backgroundImage: user['picture'] != null
+                    ? NetworkImage(user['picture'])
+                    : null,
+                child: user['picture'] == null
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
+              ),
 
-          const SizedBox(width: 12),
+              const SizedBox(width: 12),
 
-          // Name & Time
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+              // Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "${user['name'] ?? 'User'} ➡ ${counselor['name'] ?? 'Counselor'}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "$date • $time",
+                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  time,
-                  style: const TextStyle(fontSize: 12, color: Colors.black54),
-                ),
-              ],
-            ),
-          ),
+              ),
 
-          _statusChip(),
+              _statusChip(status),
+            ],
+          ),
+          
+          if (session['meeting_link'] != null) ...[
+             const SizedBox(height: 8),
+             Align(
+               alignment: Alignment.centerLeft,
+               child: Text('Link: ${session['meeting_link']}', style: TextStyle(fontSize: 10, color: Colors.blue)),
+             ) 
+          ]
         ],
       ),
     );
   }
 
-  Widget _statusChip() {
+  Widget _statusChip(String status) {
     Color color;
     String text;
 
     switch (status) {
-      case SessionStatus.upcoming:
+      case 'confirmed':
         color = const Color.fromARGB(255, 81, 0, 161);
         text = "Upcoming";
         break;
-      case SessionStatus.ongoing:
+      case 'ongoing':
         color = const Color.fromARGB(255, 12, 3, 195);
         text = "Ongoing";
         break;
-      case SessionStatus.completed:
+      case 'completed':
         color = const Color.fromARGB(255, 0, 137, 5);
         text = "Completed";
         break;
+      case 'cancelled':
+        color = Colors.red;
+        text = "Cancelled";
+        break;
+      default:
+        color = Colors.grey;
+        text = status.toUpperCase();
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 80), // 🔥 FIX UTAMA
+        color: color.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: const Color.fromARGB(255, 253, 255, 253),
-
+        style: const TextStyle(
+          color: Colors.white,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),

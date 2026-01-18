@@ -220,4 +220,32 @@ class AdminService
             ];
         }
     }
+
+    /**
+     * Get all bookings for admin
+     */
+    public function getAllBookings()
+    {
+        try {
+            // Fetch all bookings with user and counselor details
+            $bookings = \App\Models\Booking::with([
+                    'user:id,name,picture', 
+                    'counselor:id,name,picture'
+                ])
+                ->orderBy('booking_date', 'desc')
+                ->orderBy('booking_time', 'desc')
+                ->get();
+
+            return [
+                'success' => true,
+                'bookings' => $bookings,
+            ];
+        } catch (\Exception $e) {
+            Log::error('[ADMIN_SERVICE] Error getting all bookings: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Gagal mengambil data booking',
+            ];
+        }
+    }
 }

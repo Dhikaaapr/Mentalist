@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/admin_api_services.dart';
-import '../screens/admin_dashboard.dart';
+import '../screens/admin_bottom_nav.dart';
 
 class AdminLoginPage extends StatefulWidget {
   const AdminLoginPage({super.key});
@@ -41,7 +41,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
     if (result['success'] == true) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
+        MaterialPageRoute(builder: (_) => const AdminBottomNav()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -45,12 +45,13 @@ class _ProfilePageState extends State<ProfilePage> {
     if (result != null && result['success'] == true) {
       if (mounted) {
         final data = result['data'];
+        final user = data['user'];
         setState(() {
-          _nameController.text = data['name'] ?? "";
-          _emailController.text = data['email'] ?? "";
-          _phoneController.text = data['phone'] ?? "";
-          _birthController.text = data['birth_date'] ?? "";
-          _addressController.text = data['address'] ?? "";
+          _nameController.text = user?['name'] ?? "";
+          _emailController.text = user?['email'] ?? "";
+          _phoneController.text = user?['phone'] ?? "";
+          _birthController.text = user?['birth_date'] ?? "";
+          _addressController.text = user?['address'] ?? "";
         });
       }
     }
