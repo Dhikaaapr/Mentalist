@@ -120,9 +120,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Dashboard Stats
         Route::get('/dashboard-stats', [BookingController::class, 'dashboardStats']);
+        
+        // Counselor Lists
+        Route::get('/active-clients', [BookingController::class, 'getActiveClients']);
+        Route::get('/counseling-notes-list', [BookingController::class, 'getCounselingNotesList']);
     });
 
     // Public: Get available slots for a counselor
     Route::get('/counselors/{counselorId}/slots', [CounselorAvailabilityController::class, 'getAvailableSlots']);
     Route::get('/counselors/approved', [CounselorAvailabilityController::class, 'getApprovedCounselors']);
 });
+

@@ -434,4 +434,62 @@ class CounselorApiService {
       return {'success': false, 'message': 'Kesalahan jaringan'};
     }
   }
+
+  /// -------------------------------
+  /// GET ACTIVE CLIENTS (REAL REAL)
+  /// -------------------------------
+  static Future<List<dynamic>> getActiveClients() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/counselor/active-clients'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      AppLogger.error('[COUNSELOR] Error active clients: $e');
+      return [];
+    }
+  }
+
+  /// -------------------------------
+  /// GET COUNSELING NOTES LIST (REAL)
+  /// -------------------------------
+  static Future<List<dynamic>> getCounselingNotesList() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('accessToken') ?? '';
+
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/counselor/counseling-notes-list'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Accept': 'application/json',
+            },
+          )
+          .timeout(timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['data'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      AppLogger.error('[COUNSELOR] Error notes list: $e');
+      return [];
+    }
+  }
 }

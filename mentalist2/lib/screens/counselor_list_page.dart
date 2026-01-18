@@ -2,29 +2,38 @@ import 'package:flutter/material.dart';
 import 'chat_list_page.dart';
 import 'schedule_page.dart';
 import 'counseling_notes_page.dart';
+import '../services/counselor_api_service.dart';
 
-class CounselorListPage extends StatelessWidget {
+class CounselorListPage extends StatefulWidget {
   const CounselorListPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> clients = [
-      // {
-      //   "name": "Sarah L",
-      //   "progress": 4,
-      //   "total": 8,
-      //   "status": "Ongoing",
-      //   "date": "10 November 2025",
-      // },
-      // {
-      //   "name": "Timothy",
-      //   "progress": 6,
-      //   "total": 8,
-      //   "status": "Ongoing",
-      //   "date": "10 November 2025",
-      // },
-    ];
+  State<CounselorListPage> createState() => _CounselorListPageState();
+}
 
+class _CounselorListPageState extends State<CounselorListPage> {
+  bool isLoading = true;
+  List<dynamic> clients = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadClients();
+  }
+
+  Future<void> _loadClients() async {
+    setState(() => isLoading = true);
+    final data = await CounselorApiService.getActiveClients();
+    if (!mounted) return;
+    setState(() {
+      clients = data;
+      isLoading = false;
+    });
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -78,14 +87,18 @@ class CounselorListPage extends StatelessWidget {
 
             /// ---- Client List ----
             Expanded(
-              child: ListView.builder(
-                itemCount: clients.length,
-                itemBuilder: (context, index) {
-                  final client = clients[index];
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : clients.isEmpty
+                      ? const Center(child: Text("No active clients"))
+                      : ListView.builder(
+                          itemCount: clients.length,
+                          itemBuilder: (context, index) {
+                            final client = clients[index];
 
-                  final int progress = client["progress"];
-                  final int total = client["total"];
-                  final double percent = progress / total;
+                  final int progress = client["progress"] ?? 0;
+                  final int total = client["target_sessions"] ?? 12;
+                  final double percent = (progress / total).clamp(0.0, 1.0);
 
                   return Container(
                     margin: const EdgeInsets.symmetric(
@@ -138,7 +151,7 @@ class CounselorListPage extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(18),
                               ),
                               child: Text(
-                                client["status"],
+                                client["status"] ?? 'Active',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   color: Colors.black87,
@@ -151,7 +164,7 @@ class CounselorListPage extends StatelessWidget {
                         const SizedBox(height: 5),
 
                         Text(
-                          "Upcoming Session    ${client["date"]}",
+                          "Last Booking: ${client["last_booking_date"] ?? '-'}",
                           style: TextStyle(color: Colors.grey.shade700),
                         ),
 
@@ -183,7 +196,7 @@ class CounselorListPage extends StatelessWidget {
 
                         const SizedBox(height: 5),
                         Text(
-                          "$progress/$total Sessions Completed",
+                          "${client['total_sessions']} Sessions Completed",
                           style: const TextStyle(fontSize: 12),
                         ),
 

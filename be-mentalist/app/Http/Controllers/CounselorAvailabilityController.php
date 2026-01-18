@@ -297,7 +297,7 @@ class CounselorAvailabilityController extends Controller
                     'picture' => $user->picture,
                     'specialization' => $user->counselorProfile?->specialization,
                     'bio' => $user->counselorProfile?->bio,
-                    'is_online' => $user->is_online ?? false,
+                    'is_online' => (bool) ($user->counselorProfile?->is_accepting_patients ?? false),
                 ];
             });
 

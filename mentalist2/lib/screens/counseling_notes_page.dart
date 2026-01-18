@@ -1,18 +1,41 @@
 import 'package:flutter/material.dart';
 import 'counseling_notes_detail.dart';
 
-class CounselingNotesPage extends StatelessWidget {
+import '../services/counselor_api_service.dart';
+
+class CounselingNotesPage extends StatefulWidget {
   const CounselingNotesPage({super.key});
 
+  @override
+  State<CounselingNotesPage> createState() => _CounselingNotesPageState();
+}
+
+class _CounselingNotesPageState extends State<CounselingNotesPage> {
   // Brand Color (BIKIN SATU SUPAYA KONSISTEN)
   static const primaryColor = Color.fromARGB(255, 110, 16, 183);
+  
+  bool isLoading = true;
+  List<dynamic> notes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotes();
+  }
+
+  Future<void> _loadNotes() async {
+    setState(() => isLoading = true);
+    final data = await CounselorApiService.getCounselingNotesList();
+    if (!mounted) return;
+    setState(() {
+      notes = data;
+      isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> clients = [
-      {"name": "Nathaniel. A", "lastNote": "Oct 22, 2025"},
-      {"name": "Sarah. L", "lastNote": "Dec 25, 2025"},
-    ];
+
 
     return Scaffold(
       body: SafeArea(
@@ -68,10 +91,14 @@ class CounselingNotesPage extends StatelessWidget {
 
             /// --- List of Notes ---
             Expanded(
-              child: ListView.builder(
-                itemCount: clients.length,
-                itemBuilder: (context, index) {
-                  final client = clients[index];
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : notes.isEmpty
+                      ? const Center(child: Text("No completed sessions"))
+                      : ListView.builder(
+                          itemCount: notes.length,
+                          itemBuilder: (context, index) {
+                            final client = notes[index];
 
                   return Container(
                     margin: const EdgeInsets.symmetric(
@@ -101,7 +128,7 @@ class CounselingNotesPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                client["name"]!,
+                                client["name"] ?? 'Unknown',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
@@ -109,7 +136,7 @@ class CounselingNotesPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                "Last Note: ${client["lastNote"]}",
+                                "Last Session: ${client["last_note_date"] ?? '-'}",
                                 style: TextStyle(
                                   color: Colors.grey.shade700,
                                   fontSize: 13,
@@ -126,7 +153,7 @@ class CounselingNotesPage extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => CounselingNotesDetail(
-                                  name: client["name"]!,
+                                  name: client["name"] ?? 'Unknown',
                                 ),
                               ),
                             );
