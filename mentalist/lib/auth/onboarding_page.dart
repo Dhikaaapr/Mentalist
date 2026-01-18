@@ -24,8 +24,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
         children: [
           _page(
             bg: Colors.white,
-            image: "assets/splash1.png",
             title: "Welcome to Mentalist",
+            image: "assets/splash1.png",
+
             desc:
                 "This platform helps you reflect on your emotional well-being and connect with professional counselors when you need support.",
             left: "Skip",

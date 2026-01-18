@@ -5,12 +5,13 @@ import 'profile_page.dart';
 import 'counselor_page.dart';
 import 'counseling_session_page.dart';
 import 'history_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'notification_page.dart';
 import '../services/booking_api_service.dart';
 import '../services/api_service.dart';
 import 'package:intl/intl.dart';
 import 'chat_list_page.dart';
+import '../services/mood_api_service.dart';
 
 class UserDashboardPage extends StatefulWidget {
   final String userName;
@@ -185,33 +186,41 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _loadWeeklyMood() async {
-    final prefs = await SharedPreferences.getInstance();
+    // Panggil API
+    final result = await MoodApiService.getWeeklyMood();
 
-    // Cek minggu baru
-    String currentWeek = "${DateTime.now().year}-${DateTime.now().weekday}";
-    String? savedWeek = prefs.getString("saved_week");
+    if (result['success'] == true) {
+      List data = result['data'];
+      
+      // Reset dulu
+      setState(() {
+         weeklyMood.updateAll((key, value) => null);
+         weeklyColors = List.generate(7, (_) => Colors.grey.shade300);
+      });
 
-    if (savedWeek != currentWeek) {
-      // reset semua mood bila minggu baru
-      for (var day in weeklyLabels) {
-        prefs.remove("mood_$day");
-        weeklyMood[day] = null;
+      // Mapping data API ke UI
+      for (var item in data) {
+        String entryDate = item['entry_date']; // "2026-01-19"
+        String mood = item['mood_label'];
+
+        DateTime date = DateTime.parse(entryDate);
+        // Cari hari apa (Senin=1 -> Mon)
+        // weeklyLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        // date.weekday: 1=Senin, 7=Minggu. Index array = weekday - 1
+        
+        int dayIndex = date.weekday - 1;
+        if (dayIndex >= 0 && dayIndex < 7) {
+            String dayLabel = weeklyLabels[dayIndex];
+            
+            if (mounted) {
+              setState(() {
+                weeklyMood[dayLabel] = mood;
+                weeklyColors[dayIndex] = _getMoodColor(mood);
+              });
+            }
+        }
       }
-      prefs.setString("saved_week", currentWeek);
     }
-
-    // Load data mood
-    for (int i = 0; i < weeklyLabels.length; i++) {
-      String day = weeklyLabels[i];
-      String? mood = prefs.getString("mood_$day");
-
-      if (mood != null) {
-        weeklyMood[day] = mood;
-        weeklyColors[i] = _getMoodColor(mood);
-      }
-    }
-
-    setState(() {});
   }
 
   final moods = ["😄", "😊", "😐", "😕", "😭"];
@@ -237,34 +246,41 @@ class _HomeViewState extends State<HomeView> {
   ];
 
   void _selectMood(String mood) async {
-    final prefs = await SharedPreferences.getInstance();
-    String today = weeklyLabels[DateTime.now().weekday - 1];
+    // 1. Update UI Langsung (Optimistic UI)
+    String todayLabel = weeklyLabels[DateTime.now().weekday - 1]; // "Mon"
+    int todayIndex = DateTime.now().weekday - 1;
 
     setState(() {
       selectedMood = mood;
-      weeklyMood[today] = mood;
-      weeklyColors[DateTime.now().weekday - 1] = _getMoodColor(mood);
+      weeklyMood[todayLabel] = mood;
+      weeklyColors[todayIndex] = _getMoodColor(mood);
     });
 
-    // simpan ke shared prefs
-    prefs.setString("mood_$today", mood);
+    // 2. Kirim ke Backend
+    final result = await MoodApiService.saveMood(mood, DateTime.now());
 
-    // CEK: widget masih mounted atau tidak
+    // 3. Feedback Dialog
     if (!mounted) return;
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Mood Saved 😊"),
-        content: Text("Mood kamu hari ini: $mood"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Oke"),
-          ),
-        ],
-      ),
-    );
+    if (result['success']) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Mood Saved 😊"),
+          content: Text("Mood kamu hari ini: $mood\nData tersimpan di cloud!"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Oke"),
+            ),
+          ],
+        ),
+      );
+    } else {
+       ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Gagal menyimpan mood: ${result['message']}")),
+      );
+    }
   }
 
   Color _getMoodColor(String mood) {

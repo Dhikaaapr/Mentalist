@@ -34,6 +34,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Notifications
     Route::get('/notifications', [AuthController::class, 'notifications']);
 
+    // Mood Tracker
+    Route::get('/moods', [\App\Http\Controllers\MoodEntryController::class, 'index']);
+    Route::post('/moods', [\App\Http\Controllers\MoodEntryController::class, 'store']);
+
+
     // User profile
     Route::get('/user', [AuthController::class, 'profile']);
     Route::post('/user', [AuthController::class, 'updateProfile']);

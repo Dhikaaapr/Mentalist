@@ -336,11 +336,11 @@ class ApiService {
   /// -------------------------------
   static Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
-      AppLogger.info('📡 [USER] Forgot password → $baseUrl/forgot-password');
+      AppLogger.info('📡 [USER] Forgot password → $baseUrl/auth/forgot-password');
 
       final response = await http
           .post(
-            Uri.parse('$baseUrl/forgot-password'),
+            Uri.parse('$baseUrl/auth/forgot-password'),
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
