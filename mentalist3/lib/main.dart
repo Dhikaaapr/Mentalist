@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'auth/admin_login_page.dart'; // 👈 arahkan ke login admin
+import 'screens/splash_screen.dart';
 
 void main() {
   runApp(const AdminApp());
@@ -24,7 +24,7 @@ class AdminApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const AdminLoginPage(), // ✅ arahkan ke halaman login admin
+      home: const SplashScreen(), // ✅ Start with Splash Screen
     );
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
 import '../services/admin_api_services.dart';
 import '../screens/admin_bottom_nav.dart';
 
@@ -15,6 +15,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   final TextEditingController passwordController = TextEditingController();
 
   bool isLoading = false;
+  bool _isObscure = true;
 
   void _login() async {
     if (emailController.text.isEmpty || passwordController.text.isEmpty) {
@@ -63,7 +64,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SvgPicture.asset('assets/logoadmin.svg', width: 200),
+              Image.asset('assets/logoadmin.png', width: 200),
               const SizedBox(height: 40),
               const Text(
                 "Login Admin",
@@ -85,7 +86,7 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
               const SizedBox(height: 15),
               TextField(
                 controller: passwordController,
-                obscureText: true,
+                obscureText: _isObscure,
                 decoration: InputDecoration(
                   hintText: "Password",
                   filled: true,
@@ -93,6 +94,16 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide.none,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _isObscure ? Icons.visibility_off : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isObscure = !_isObscure;
+                      });
+                    },
                   ),
                 ),
               ),

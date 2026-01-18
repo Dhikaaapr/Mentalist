@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CounselorWeeklyAvailability;
+use App\Models\CounselorWeeklySchedule;
 use App\Models\AvailableTimeSlot;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ class CounselorAvailabilityController extends Controller
     {
         $user = Auth::user();
 
-        $hasSetup = CounselorWeeklyAvailability::where('counselor_id', $user->id)
+        $hasSetup = CounselorWeeklySchedule::where('counselor_id', $user->id)
             ->exists();
 
         return response()->json([
@@ -35,17 +35,17 @@ class CounselorAvailabilityController extends Controller
     {
         $user = Auth::user();
 
-        $schedules = CounselorWeeklyAvailability::where('counselor_id', $user->id)
+        $schedules = CounselorWeeklySchedule::where('counselor_id', $user->id)
             ->orderBy('day_of_week', 'asc')
             ->get()
             ->map(function ($schedule) {
                 return [
                     'id' => $schedule->id,
                     'day_of_week' => $schedule->day_of_week,
-                    'day_name' => $schedule->day_name,
-                    'start_time' => $schedule->start_time,
-                    'end_time' => $schedule->end_time,
-                    'is_active' => $schedule->is_active,
+                    'start_time' => Carbon::parse($schedule->start_time)->format('H:i'),
+                    'end_time' => Carbon::parse($schedule->end_time)->format('H:i'),
+                    'status' => $schedule->status,
+                    'is_active' => $schedule->status === 'approved', // Backward compatibility for frontend
                 ];
             });
 
@@ -64,7 +64,7 @@ class CounselorAvailabilityController extends Controller
         $user = Auth::user();
 
         // Check if already setup
-        $existingCount = CounselorWeeklyAvailability::where('counselor_id', $user->id)->count();
+        $existingCount = CounselorWeeklySchedule::where('counselor_id', $user->id)->count();
         if ($existingCount > 0) {
             return response()->json([
                 'success' => false,
@@ -82,19 +82,17 @@ class CounselorAvailabilityController extends Controller
         $createdSchedules = [];
 
         foreach ($request->schedules as $schedule) {
-            $created = CounselorWeeklyAvailability::create([
+            $created = CounselorWeeklySchedule::create([
                 'counselor_id' => $user->id,
                 'day_of_week' => $schedule['day_of_week'],
                 'start_time' => $schedule['start_time'],
                 'end_time' => $schedule['end_time'],
-                'is_active' => false, // Inactive until admin approves
+                'status' => 'pending', // Default status
             ]);
 
             $createdSchedules[] = $created;
         }
 
-        // Notify admins (optional - can add notification later)
-        
         return response()->json([
             'success' => true,
             'message' => 'Jadwal mingguan berhasil disimpan. Menunggu persetujuan admin.',
@@ -107,8 +105,8 @@ class CounselorAvailabilityController extends Controller
      */
     public function getPendingSchedules(): JsonResponse
     {
-        $schedules = CounselorWeeklyAvailability::with('counselor')
-            ->where('is_active', false)
+        $schedules = CounselorWeeklySchedule::with('counselor')
+            ->where('status', 'pending')
             ->orderBy('created_at', 'asc')
             ->get()
             ->groupBy('counselor_id')
@@ -119,12 +117,14 @@ class CounselorAvailabilityController extends Controller
                     'counselor_name' => $counselor->name,
                     'counselor_picture' => $counselor->picture,
                     'schedules' => $counselorSchedules->map(function ($s) {
+                        // Map day number number to name manually if needed, or rely on frontend
+                        $days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
                         return [
                             'id' => $s->id,
                             'day_of_week' => $s->day_of_week,
-                            'day_name' => $s->day_name,
-                            'start_time' => $s->start_time,
-                            'end_time' => $s->end_time,
+                            'day_name' => $days[$s->day_of_week] ?? '',
+                            'start_time' => Carbon::parse($s->start_time)->format('H:i'),
+                            'end_time' => Carbon::parse($s->end_time)->format('H:i'),
                         ];
                     })->values(),
                     'created_at' => $counselorSchedules->first()->created_at,
@@ -145,9 +145,9 @@ class CounselorAvailabilityController extends Controller
     public function approveSchedules(Request $request, string $counselorId): JsonResponse
     {
         // Activate all schedules for this counselor
-        CounselorWeeklyAvailability::where('counselor_id', $counselorId)
-            ->where('is_active', false)
-            ->update(['is_active' => true]);
+        CounselorWeeklySchedule::where('counselor_id', $counselorId)
+            ->where('status', 'pending')
+            ->update(['status' => 'approved']);
 
         // Generate time slots for the next 4 weeks
         $this->generateTimeSlots($counselorId, 4);
@@ -163,8 +163,30 @@ class CounselorAvailabilityController extends Controller
      */
     public function rejectSchedules(Request $request, string $counselorId): JsonResponse
     {
-        CounselorWeeklyAvailability::where('counselor_id', $counselorId)
-            ->where('is_active', false)
+        $reason = $request->input('reason', '');
+
+        CounselorWeeklySchedule::where('counselor_id', $counselorId)
+            ->where('status', 'pending')
+            ->update([
+                'status' => 'rejected',
+                'admin_notes' => $reason
+            ]);
+            
+        // Alternatively, delete them if you want them to re-submit completely
+        // For now, setting to rejected allows history tracking, but you might want to delete 
+        // if user requirement implies "allow re-submit".
+        // Use requirement: "if already setup... > 0". So if rejected, they verify "hasSetup" is true. 
+        // If we want them to re-submit, we might need to delete. 
+        // User asked: "hanya sekali, sehabis mengisi tidak akan muncul lagi". 
+        // If rejected, does it appear again? 
+        // Usually, if rejected, they should be able to try again. 
+        // But let's stick to status update for now. If user wants delete on reject, we can change.
+        // Actually, if status is 'rejected', hasSetup() will still return TRUE. 
+        // Meaning user CANNOT resubmit. This might be a blocker.
+        // Let's DELETE on reject so they can resubmit.
+        
+        CounselorWeeklySchedule::where('counselor_id', $counselorId)
+            ->where('status', 'rejected') 
             ->delete();
 
         return response()->json([
@@ -178,8 +200,8 @@ class CounselorAvailabilityController extends Controller
      */
     private function generateTimeSlots(string $counselorId, int $weeks = 4): void
     {
-        $schedules = CounselorWeeklyAvailability::where('counselor_id', $counselorId)
-            ->where('is_active', true)
+        $schedules = CounselorWeeklySchedule::where('counselor_id', $counselorId)
+            ->where('status', 'approved')
             ->get();
 
         // Start from Today instead of Tomorrow
@@ -261,7 +283,7 @@ class CounselorAvailabilityController extends Controller
      */
     public function getApprovedCounselors(): JsonResponse
     {
-        $counselorIds = CounselorWeeklyAvailability::where('is_active', true)
+        $counselorIds = CounselorWeeklySchedule::where('status', 'approved')
             ->distinct()
             ->pluck('counselor_id');
 

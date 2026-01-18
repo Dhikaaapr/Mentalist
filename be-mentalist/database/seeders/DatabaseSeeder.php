@@ -90,11 +90,15 @@ class DatabaseSeeder extends Seeder
         );
 
         // Create Dummy Bookings for Reports
-        $users = User::whereHas('role', function($q) { $q->where('name', 'user'); })->get();
-        $counselors = User::whereHas('role', function($q) { $q->where('name', 'konselor'); })->get();
+        $users = User::whereHas('role', function ($q) {
+            $q->where('name', 'user');
+        })->get();
+        $counselors = User::whereHas('role', function ($q) {
+            $q->where('name', 'konselor');
+        })->get();
 
         if ($users->isNotEmpty() && $counselors->isNotEmpty()) {
-            foreach($counselors as $index => $counselor) {
+            foreach ($counselors as $index => $counselor) {
                 // Create 3-5 bookings for each counselor in the last 30 days
                 for ($i = 1; $i <= (3 + $index); $i++) {
                     \App\Models\Booking::create([
@@ -109,9 +113,11 @@ class DatabaseSeeder extends Seeder
         }
 
         // Create Dummy Schedules & Notifications
-        $admin = User::whereHas('role', function($q) { $q->where('name', 'admin'); })->first();
+        $admin = User::whereHas('role', function ($q) {
+            $q->where('name', 'admin');
+        })->first();
         if ($admin && $counselors->isNotEmpty()) {
-            foreach($counselors as $counselor) {
+            foreach ($counselors as $counselor) {
                 $schedule = \App\Models\CounselorSchedule::create([
                     'counselor_id' => $counselor->id,
                     'scheduled_date' => now()->addDays(rand(1, 5))->format('Y-m-d'),

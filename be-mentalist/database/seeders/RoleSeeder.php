@@ -21,6 +21,7 @@ class RoleSeeder extends Seeder
             'display_name' => 'Administrator',
         ]);
 
+
         // Create Konselor role
         Role::firstOrCreate([
             'name' => 'konselor'
