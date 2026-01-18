@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../services/counselor_api_service.dart';
-import '../screens/set_weekly_availability_page.dart';
+import '../screens/weekly_schedule_setup_page.dart';
+import '../screens/counselor_dashboard.dart';
 
 import '../utils/logger.dart';
 
@@ -20,6 +21,7 @@ class _CounselorLoginPageState extends State<CounselorLoginPage> {
   final TextEditingController passwordController = TextEditingController();
 
   bool isLoading = false;
+  bool _isObscure = true;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile', 'openid'],
@@ -101,7 +103,10 @@ class _CounselorLoginPageState extends State<CounselorLoginPage> {
   /// -------------------------------
   /// HANDLE RESPONSE
   /// -------------------------------
-  void _handleLoginResponse(Map<String, dynamic>? response) {
+  /// -------------------------------
+  /// HANDLE RESPONSE
+  /// -------------------------------
+  void _handleLoginResponse(Map<String, dynamic>? response) async {
     if (response != null && response['success'] == true) {
       final user = response['user'];
       final role = user['role']?['name'] ?? '';
@@ -115,18 +120,41 @@ class _CounselorLoginPageState extends State<CounselorLoginPage> {
         return;
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => SetWeeklyAvailabilityPage(
-            counselorId: user['id'],
-            counselorName: user['name'],
-            counselorEmail: user['email'],
+      // Check Weekly Setup
+      setState(() => isLoading = true);
+      final setupCheck = await CounselorApiService.hasWeeklySetup();
+      
+      if (!mounted) return;
+      setState(() => isLoading = false);
+
+      final hasSetup = setupCheck['has_setup'] == true;
+
+      if (hasSetup) {
+        // Navigate to Dashboard
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CounselorDashboardPage(
+              counselorName: user['name'] ?? 'Counselor',
+              counselorEmail: user['email'] ?? '',
+              counselorPhotoUrl: user['picture'],
+            ),
           ),
-        ),
-      );
+        );
+      } else {
+        // Navigate to Setup Page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const WeeklyScheduleSetupPage(),
+          ),
+        );
+      }
     } else {
-      _showSnackBar(response?['message'] ?? 'Login gagal', Colors.redAccent);
+      if (mounted) {
+        setState(() => isLoading = false);
+        _showSnackBar(response?['message'] ?? 'Login gagal', Colors.redAccent);
+      }
     }
   }
 
@@ -172,9 +200,22 @@ class _CounselorLoginPageState extends State<CounselorLoginPage> {
 
                 TextField(
                   controller: passwordController,
-                  obscureText: true,
+                  obscureText: _isObscure,
                   enabled: !isLoading,
-                  decoration: _input("Password"),
+                  decoration: _input(
+                    "Password",
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isObscure ? Icons.visibility_off : Icons.visibility,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isObscure = !_isObscure;
+                        });
+                      },
+                    ),
+                  ),
                 ),
 
                 const SizedBox(height: 30),
@@ -228,7 +269,7 @@ class _CounselorLoginPageState extends State<CounselorLoginPage> {
     );
   }
 
-  InputDecoration _input(String hint) {
+  InputDecoration _input(String hint, {Widget? suffixIcon}) {
     return InputDecoration(
       hintText: hint,
       filled: true,
@@ -237,6 +278,7 @@ class _CounselorLoginPageState extends State<CounselorLoginPage> {
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
       ),
+      suffixIcon: suffixIcon,
     );
   }
 }

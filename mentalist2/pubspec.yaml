@@ -29,6 +29,20 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   build_runner: ^2.4.6
   riverpod_generator: ^2.3.5
+  flutter_native_splash: ^2.3.10
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/splash1.png"
+
+flutter_native_splash:
+  color: "#6A0DAD"
+  # image: assets/splash1.png
+  android_12:
+    color: "#6A0DAD"
+    # image: assets/splash1.png
 
 flutter:
   uses-material-design: true

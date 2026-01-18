@@ -45,7 +45,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget _splash1() {
     return Container(
       color: const Color(0xFF6A0DAD),
-      child: Center(child: Image.asset("assets/splash1.png", height: 200)),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset("assets/splash1.png", height: 200),
+            const SizedBox(height: 20),
+            const CircularProgressIndicator(color: Colors.white),
+          ],
+        ),
+      ),
     );
   }
 
