@@ -10,7 +10,8 @@ class ApiService {
   // static const String baseUrl = 'http://10.0.2.2:8000/api';
 
   // physical device
-  static const String baseUrl = 'http://10.92.142.43:8000/api';
+  // static const String baseUrl = 'http://10.92.142.43:8000/api';
+  static const String baseUrl = 'http://192.168.101.2:8000/api';
 
   static const Duration timeoutDuration = Duration(seconds: 30);
 
@@ -534,8 +535,9 @@ class ApiService {
       final body = <String, dynamic>{};
       if (name != null && name.isNotEmpty) body['name'] = name;
       if (phone != null && phone.isNotEmpty) body['phone'] = phone;
-      if (birthDate != null && birthDate.isNotEmpty)
+      if (birthDate != null && birthDate.isNotEmpty) {
         body['birth_date'] = birthDate;
+      }
       if (address != null && address.isNotEmpty) body['address'] = address;
       if (photo != null && photo.isNotEmpty) body['photo'] = photo;
 
