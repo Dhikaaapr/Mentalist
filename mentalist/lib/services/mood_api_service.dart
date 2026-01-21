@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/logger.dart';
 
 class MoodApiService {
-  static const String baseUrl = 'http://192.168.100.11:8000/api';
+  static const String baseUrl = 'http://192.168.23.205:8000/api';
   static const Duration timeoutDuration = Duration(seconds: 30);
 
   /// -------------------------------

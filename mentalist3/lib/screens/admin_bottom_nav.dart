@@ -15,9 +15,9 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
   int _currentIndex = 0; // Default ke Dashboard
 
   final List<Widget> _pages = const [
-    AdminDashboardPage(),      // index 0: Dashboard
-    TherapySessionPage(),      // index 1: Therapy Session
-    AdminProfilePage(),        // index 2: Profile
+    AdminDashboardPage(), // index 0: Dashboard
+    TherapySessionPage(), // index 1: Therapy Session
+    AdminProfilePage(), // index 2: Profile
   ];
 
   @override
@@ -31,7 +31,7 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
   Widget _buildBottomNavBar() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF2D2D5E),
+        color: const Color.fromARGB(255, 45, 45, 94),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
@@ -86,7 +86,9 @@ class _AdminBottomNavState extends State<AdminBottomNav> {
           vertical: 10,
         ),
         decoration: BoxDecoration(
-          color: isActive ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
+          color: isActive
+              ? Colors.white.withValues(alpha: 0.15)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(

@@ -5,7 +5,6 @@ import 'admin_management_page.dart';
 import 'admin_user_management_page.dart';
 import 'notification_page.dart';
 import 'schedule_approval_counselors.dart';
-import 'schedule_management_users.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
@@ -47,8 +46,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   Future<void> _loadAdminProfile() async {
     final result = await AdminApiService.getProfile();
 
-
-
     if (result['success'] == true && result['user'] != null) {
       final user = result['user'];
       setState(() {
@@ -62,6 +59,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Define menu items inside build or move them to state if they need context access,
+    // but here they seem static enough or can be rebuilt.
+    // Ideally, keep them where they were or ensure ScheduleApprovalCounselors is const if possible.
+    final List<Map<String, dynamic>> menuItems = [
+      {
+        'icon': Icons.storage_rounded,
+        'title': "Report & analysis",
+        'page': const ReportPage(),
+      },
+      {
+        'icon': Icons.phone_android_rounded,
+        'title': "Approval",
+        'page': const ScheduleApprovalCounselors(),
+      },
+      {
+        'icon': Icons.groups_rounded,
+        'title': "Management",
+        'page': const AdminManagementPage(),
+      },
+      {
+        'icon': Icons.calendar_month_rounded,
+        'title': "Setting Session",
+        'page': const AdminUserManagementPage(),
+      },
+    ];
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -155,9 +178,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                     final item = menuItems[index];
                     return GestureDetector(
                       onTap: () {
-                        if (item['title'] == "Approval") {
-                          showApprovalPopup(context);
-                        } else {
+                        if (item['page'] != null) {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => item['page']),
@@ -198,57 +219,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void showApprovalPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _popupButton(
-              context,
-              "Schedule Approval counselors",
-              const ScheduleApprovalCounselors(),
-            ),
-            const SizedBox(height: 16),
-            _popupButton(
-              context,
-              "Schedule Management users",
-              const ScheduleManagementUsers(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _popupButton(BuildContext context, String text, Widget page) {
-    return SizedBox(
-      width: double.infinity,
-      height: 48,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF3F3D7D),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        onPressed: () {
-          Navigator.pop(context);
-          Navigator.push(context, MaterialPageRoute(builder: (_) => page));
-        },
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ),
