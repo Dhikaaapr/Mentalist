@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CounselorApiService {
-  static const String baseUrl = 'http://192.168.23.205:8000/api';
+  static const String baseUrl = 'https://mentalist-ia6v6uchd-dhikaaaprs-projects.vercel.app/api';
   // static const String baseUrl = 'http://10.92.142.43:8000/api';
 
   /// =========================
