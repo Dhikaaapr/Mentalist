@@ -11,7 +11,7 @@ class AdminApiService {
 
   // physical device
   // static const String baseUrl = 'http://10.92.142.43:8000/api';
-  static const String baseUrl = 'https://mentalist-ia6v6uchd-dhikaaaprs-projects.vercel.app/api';
+  static const String baseUrl = 'https://mentalist-one.vercel.app/api';
   static const Duration timeoutDuration = Duration(seconds: 30);
 
   /// -------------------------------
